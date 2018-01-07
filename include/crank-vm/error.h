@@ -13,6 +13,11 @@ typedef enum crankvm_error_e
     CRANK_VM_ERROR_UNIMPLEMENTED = -5,
     CRANK_VM_ERROR_BAD_IMAGE = -6,
     CRANK_VM_ERROR_OUT_OF_MEMORY = -7,
+    CRANK_VM_ERROR_FAILED_TO_OPEN_FILE = -8,
+    CRANK_VM_ERROR_FAILED_TO_READ_FILE = -9,
+    CRANK_VM_ERROR_UNRECOGNIZED_IMAGE_FORMAT = -10,
+    CRANK_VM_ERROR_BAD_IMAGE_WORD_SIZE = -11,
+    CRANK_VM_ERROR_BAD_IMAGE_ENDIANNESS = -12,
 } crankvm_error_t;
 
 LIB_CRANK_VM_EXPORT const char *crankvm_error_getString(crankvm_error_t error);

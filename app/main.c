@@ -61,7 +61,7 @@ int main(int argc, const char* argv[])
     error = crankvm_context_loadImageFromFileNamed(context, imageFileName);
     if(error)
     {
-        fprintf(stderr, "Failed to create crank vm context: %s\n", crankvm_error_getString(error));
+        fprintf(stderr, "Failed to load image into crank vm context: %s\n", crankvm_error_getString(error));
         return 0;
 
     }

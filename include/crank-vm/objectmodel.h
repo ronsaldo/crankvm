@@ -58,33 +58,39 @@ enum crankvm_oop_tag_e
 #define CRANK_VM_SMALL_FLOAT_EXPONENT_MIN (/* 1023 - 127 */ SmallFloatExponentOffset)
 #define CRANK_VM_SMALL_FLOAT_EXPONENT_MAX (/* 1023 - 127 */ 1151)
 
-inline int crankvm_oop_isPointers(crankvm_oop_t oop)
+static inline int
+crankvm_oop_isPointers(crankvm_oop_t oop)
 {
     return (oop & CRANK_VM_OOP_TAG_POINTER_MASK) == CRANK_VM_OOP_TAG_POINTER_VALUE;
 }
 
-inline int crankvm_oop_isSmallInteger(crankvm_oop_t oop)
+static inline int
+crankvm_oop_isSmallInteger(crankvm_oop_t oop)
 {
     return (oop & CRANK_VM_OOP_TAG_SMALL_INTEGER_MASK) == CRANK_VM_OOP_TAG_SMALL_INTEGER_VALUE;
 }
 
-inline int crankvm_oop_isCharacter(crankvm_oop_t oop)
+static inline int
+crankvm_oop_isCharacter(crankvm_oop_t oop)
 {
     return (oop & CRANK_VM_OOP_TAG_CHARACTER_MASK) == CRANK_VM_OOP_TAG_CHARACTER_VALUE;
 }
 
-inline int crankvm_oop_isSmallFloat(crankvm_oop_t oop)
+static inline int
+crankvm_oop_isSmallFloat(crankvm_oop_t oop)
 {
     return (oop & CRANK_VM_OOP_TAG_SMALL_FLOAT_MASK) == CRANK_VM_OOP_TAG_SMALL_FLOAT_VALUE;
 }
 
-inline intptr_t crankvm_oop_decodeSmallInteger(crankvm_soop_t oop)
+static inline intptr_t
+crankvm_oop_decodeSmallInteger(crankvm_soop_t oop)
 {
     crankvm_assertAlways(crankvm_oop_isSmallInteger(oop));
     return oop >> CRANK_VM_OOP_TAG_SMALL_INTEGER_SHIFT;
 }
 
-inline crankvm_oop_t crankvm_oop_encodeSmallInteger(intptr_t integer)
+static inline crankvm_oop_t
+crankvm_oop_encodeSmallInteger(intptr_t integer)
 {
     // TODO: Check the integer range
     return (integer << CRANK_VM_OOP_TAG_SMALL_INTEGER_SHIFT) | CRANK_VM_OOP_TAG_SMALL_INTEGER_VALUE;
@@ -128,78 +134,133 @@ typedef enum crankvm_object_format_e
 /***
  * Object header
  */
-typedef struct crankvm_object_header_s
+typedef union crankvm_object_header_u
 {
+/**
+MSB:	| 8: numSlots		| (on a byte boundary)
+
+       | 2 bits				|	(msb,lsb = {isMarked,?})
+       | 22: identityHash	| (on a word boundary)
+
+       | 3 bits				|	(msb <-> lsb = {isGrey,isPinned,isRemembered}
+       | 5: format			| (on a byte boundary)
+
+       | 2 bits				|	(msb,lsb = {isImmutable,?})
+       | 22: classIndex		| (on a word boundary) : LSB
+*/
     struct __data
     {
         // TODO: Be able to remove these bit fields
-        unsigned int slotCount : 8;
-    	unsigned int isImmutable : 1;
-    	unsigned int isPinned : 1;
-    	unsigned int identityHash : 22;
-    	unsigned int gcColor : 3;
-    	unsigned int objectFormat : 5;
-    	unsigned int reserved : 2;
-    	unsigned int classIndex : 22;
+    	uint64_t isImmutable : 1;
+    	uint64_t isPinned : 1;
+    	uint64_t identityHash : 22;
+    	uint64_t gcColor : 3;
+    	uint64_t objectFormat : 5;
+    	uint64_t reserved : 2;
+    	uint64_t classIndex : 22;
+        uint64_t slotCount : 8;
     } hidden_data;
 } crankvm_object_header_t;
 
-inline unsigned int crankvm_object_header_getSlotCount(crankvm_object_header_t *header)
+static inline unsigned int
+crankvm_object_header_getRawSlotCount(crankvm_object_header_t *header)
 {
     return header->hidden_data.slotCount;
 }
 
-inline void crankvm_object_header_setSlotCount(crankvm_object_header_t *header, unsigned int value)
+static inline void
+crankvm_object_header_setRawSlotCount(crankvm_object_header_t *header, unsigned int value)
 {
     header->hidden_data.slotCount = value;
 }
 
-inline unsigned int crankvm_object_header_isImmutable(crankvm_object_header_t *header)
+static inline unsigned int
+crankvm_object_header_getRawSlotOverflowCount(crankvm_object_header_t *header)
+{
+#ifdef CRANK_VM_64_BITS
+    uint64_t count = ((uint64_t*)header)[-1];
+    return count & 0x00FFFFFFFFFFFFFFul;
+#else
+    return ((uint32_t*)header)[-1];
+#endif
+}
+
+static inline void
+crankvm_object_header_setRawSlotOverflowCount(crankvm_object_header_t *header, size_t count)
+{
+#ifdef CRANK_VM_64_BITS
+    ((uint64_t*)header)[-1] = count | (0xFFul<<56ul);
+#else
+    ((uint32_t*)header)[-1] = count;
+    ((uint32_t*)header)[-2] = 0xFF000000;
+#endif
+}
+
+static inline size_t
+crankvm_object_header_getSlotCount(crankvm_object_header_t *header)
+{
+    size_t count = crankvm_object_header_getRawSlotCount(header);
+    if(count == 255)
+        return crankvm_object_header_getRawSlotOverflowCount(header);
+    return count;
+}
+
+static inline unsigned int
+crankvm_object_header_isImmutable(crankvm_object_header_t *header)
 {
     return header->hidden_data.isImmutable;
 }
 
-inline void crankvm_object_header_setIsImmutable(crankvm_object_header_t *header, unsigned int value)
+static inline void
+crankvm_object_header_setIsImmutable(crankvm_object_header_t *header, unsigned int value)
 {
     header->hidden_data.isImmutable = value;
 }
 
-inline unsigned int crankvm_object_header_getIsPinned(crankvm_object_header_t *header)
+static inline unsigned int
+crankvm_object_header_getIsPinned(crankvm_object_header_t *header)
 {
     return header->hidden_data.isPinned;
 }
 
-inline void crankvm_object_header_setIsPinned(crankvm_object_header_t *header, unsigned int value)
+static inline void
+crankvm_object_header_setIsPinned(crankvm_object_header_t *header, unsigned int value)
 {
     header->hidden_data.isPinned = value;
 }
 
-inline unsigned int crankvm_object_header_getIdentityHash(crankvm_object_header_t *header)
+static inline unsigned int
+crankvm_object_header_getIdentityHash(crankvm_object_header_t *header)
 {
     return header->hidden_data.identityHash;
 }
 
-inline void crankvm_object_header_setIdentityHash(crankvm_object_header_t *header, unsigned int value)
+static inline void
+crankvm_object_header_setIdentityHash(crankvm_object_header_t *header, unsigned int value)
 {
     header->hidden_data.identityHash = value;
 }
 
-inline crankvm_object_format_t crankvm_object_header_getObjectFormat(crankvm_object_header_t *header)
+static inline crankvm_object_format_t
+crankvm_object_header_getObjectFormat(crankvm_object_header_t *header)
 {
     return (crankvm_object_format_t)header->hidden_data.objectFormat;
 }
 
-inline void crankvm_object_header_setObjectFormat(crankvm_object_header_t *header, crankvm_object_format_t value)
+static inline void
+crankvm_object_header_setObjectFormat(crankvm_object_header_t *header, crankvm_object_format_t value)
 {
     header->hidden_data.objectFormat = value;
 }
 
-inline unsigned int crankvm_object_header_getClassIndex(crankvm_object_header_t *header)
+static inline unsigned int
+crankvm_object_header_getClassIndex(crankvm_object_header_t *header)
 {
     return header->hidden_data.classIndex;
 }
 
-inline void crankvm_object_header_setClassIndex(crankvm_object_header_t *header, unsigned int value)
+static inline void
+crankvm_object_header_setClassIndex(crankvm_object_header_t *header, unsigned int value)
 {
     header->hidden_data.classIndex = value;
 }

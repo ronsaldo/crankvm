@@ -23,7 +23,7 @@ if (${CMAKE_C_COMPILER_ID} STREQUAL MSVC)
 	# using Visual Studio C++
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W4")
 else()
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -std=gnu11")
 	if(UNIX)
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
     endif()

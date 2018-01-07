@@ -1,6 +1,10 @@
 set(CrankVM_SOURCES
     context.c
     error.c
+    heap.c
+    heap.h
+    image.c
+    image.h
     interpreter.c
 )
 
