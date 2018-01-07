@@ -45,4 +45,32 @@ LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_context_loadImageFromMemory(crankvm_
  */
 LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_context_loadImageFromFileNamed(crankvm_context_t *context, const char *fileName);
 
+/**
+ * Loads a smalltalk image into the context from memory.
+ */
+LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_context_run(crankvm_context_t *context);
+
+/**
+ * Tells if something is nil
+ */
+LIB_CRANK_VM_EXPORT int crankvm_context_isNil(crankvm_context_t *context, void *pointer);
+
+static inline int
+crankvm_context_isNilOrNull(crankvm_context_t *context, void *pointer)
+{
+    return !pointer || crankvm_context_isNil(context, pointer);
+}
+
+static inline int
+crankvm_oop_isNil(crankvm_context_t *context, crankvm_oop_t oop)
+{
+    return crankvm_context_isNil(context, (void*)oop);
+}
+
+static inline int
+crankvm_oop_isNilOrNull(crankvm_context_t *context, crankvm_oop_t oop)
+{
+    return crankvm_context_isNilOrNull(context, (void*)oop);
+}
+
 #endif //_CRANK_VM_CONTEXT_H_

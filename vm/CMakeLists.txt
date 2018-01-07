@@ -6,6 +6,7 @@ set(CrankVM_SOURCES
     image.c
     image.h
     interpreter.c
+    object-model.c
 )
 
 add_definitions(

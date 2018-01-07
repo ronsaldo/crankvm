@@ -15,7 +15,7 @@ crankvm_image_readFormatFromIntegerAndLittleEndianness(crankvm_image_format_t *f
     format->isLittleEndian = littleEndian;
 
     uint32_t baseVersion = CRANK_VM_IMAGE_FORMAT_BASE_VERSION_MASK & integer;
-    printf("%08x Base version %d isLittleEndian %d\n", integer, baseVersion, littleEndian);
+    //printf("%08x Base version %d isLittleEndian %d\n", integer, baseVersion, littleEndian);
     if(baseVersion == 6504 || baseVersion == 68002 || baseVersion == 68004)
         format->requiresClosureSupport = true;
 
@@ -192,8 +192,6 @@ crankvm_context_loadImageFromMemory(crankvm_context_t *context, size_t imageSize
     crankvm_error_t error = crankvm_image_readHeader(&stream, &header);
     if(error)
         return error;
-
-    context->specialObjectsOop = header.specialObjectsOop;
 
     return crankvm_heap_loadImageContent(context, &stream, &header);
 }

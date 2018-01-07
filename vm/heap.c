@@ -190,7 +190,7 @@ crankvm_heap_loadImageContent(crankvm_context_t *context, crankvm_read_memory_st
             crankvm_object_header_setRawSlotCount(bridgeObject, 255);
         }
 
-        oldBaseAddress += nextSegmentSize;
+        oldBaseAddress += bridgeSpan;
         nextSegmentSize = bridgeSize;
         //printf("Bridge span %zu next %zu\n", bridgeSpan, bridgeSize);
     } while(nextSegmentSize != 0);
@@ -208,12 +208,16 @@ crankvm_heap_loadImageContent(crankvm_context_t *context, crankvm_read_memory_st
         }
 
         // Apply the swizzle to the slots
-        for(size_t i = 0; i < iterator.currentObjectSlotCount; ++i)
-            iterator.currentObjectSlots[i] += currentSegmentInfo->swizzle;
+        if(crankvm_object_header_getObjectFormat(iterator.currentHeader) < CRANK_VM_OBJECT_FORMAT_INDEXABLE_64)
+        {
+            for(size_t i = 0; i < iterator.currentObjectSlotCount; ++i)
+                iterator.currentObjectSlots[i] += currentSegmentInfo->swizzle;
+        }            
     }
     assert(iterator.currentObjectEnd == targetSegment->size);
 
-    context->specialObjectsOop += (uintptr_t)heap->firstSegment.address - header->startOfMemory;
+    context->specialObjectsArray = (crankvm_special_object_array_t*)(header->specialObjectsOop - header->startOfMemory + (uintptr_t)heap->firstSegment.address);
+    // TODO: Validate the special objects array
 
     free(heap->segmentInfos);
     heap->segmentInfoCapacity = 0;

@@ -129,7 +129,7 @@ typedef enum crankvm_object_format_e
 	CRANK_VM_OBJECT_FORMAT_COMPILED_METHOD_7,
 
 	CRANK_VM_OBJECT_FORMAT_INDEXABLE_NATIVE_FIRST = CRANK_VM_OBJECT_FORMAT_INDEXABLE_64,
-}crankvm_object_format_t;
+} crankvm_object_format_t;
 
 /***
  * Object header
@@ -137,6 +137,7 @@ typedef enum crankvm_object_format_e
 typedef union crankvm_object_header_u
 {
 /**
+(Bigendian serialization)
 MSB:	| 8: numSlots		| (on a byte boundary)
 
        | 2 bits				|	(msb,lsb = {isMarked,?})
@@ -148,30 +149,29 @@ MSB:	| 8: numSlots		| (on a byte boundary)
        | 2 bits				|	(msb,lsb = {isImmutable,?})
        | 22: classIndex		| (on a word boundary) : LSB
 */
-    struct __data
-    {
-        // TODO: Be able to remove these bit fields
-    	uint64_t isImmutable : 1;
-    	uint64_t isPinned : 1;
-    	uint64_t identityHash : 22;
-    	uint64_t gcColor : 3;
-    	uint64_t objectFormat : 5;
-    	uint64_t reserved : 2;
-    	uint64_t classIndex : 22;
-        uint64_t slotCount : 8;
-    } hidden_data;
+    uint8_t bytes[8];
+    uint32_t words[2];
+    uint64_t allData;
 } crankvm_object_header_t;
 
 static inline unsigned int
 crankvm_object_header_getRawSlotCount(crankvm_object_header_t *header)
 {
-    return header->hidden_data.slotCount;
+#if CRANK_VM_LITTLE_ENDIAN
+    return header->bytes[7];
+#else
+    return header->bytes[0];
+#endif
 }
 
 static inline void
 crankvm_object_header_setRawSlotCount(crankvm_object_header_t *header, unsigned int value)
 {
-    header->hidden_data.slotCount = value;
+#if CRANK_VM_LITTLE_ENDIAN
+    header->bytes[7] = value;
+#else
+    header->bytes[0] = value;
+#endif
 }
 
 static inline unsigned int
@@ -205,7 +205,7 @@ crankvm_object_header_getSlotCount(crankvm_object_header_t *header)
     return count;
 }
 
-static inline unsigned int
+/*static inline unsigned int
 crankvm_object_header_isImmutable(crankvm_object_header_t *header)
 {
     return header->hidden_data.isImmutable;
@@ -240,20 +240,28 @@ crankvm_object_header_setIdentityHash(crankvm_object_header_t *header, unsigned 
 {
     header->hidden_data.identityHash = value;
 }
-
+*/
 static inline crankvm_object_format_t
 crankvm_object_header_getObjectFormat(crankvm_object_header_t *header)
 {
-    return (crankvm_object_format_t)header->hidden_data.objectFormat;
+#if CRANK_VM_LITTLE_ENDIAN
+    return header->bytes[3] & 31;
+#else
+    return header->bytes[4] & 31;
+#endif
 }
 
 static inline void
 crankvm_object_header_setObjectFormat(crankvm_object_header_t *header, crankvm_object_format_t value)
 {
-    header->hidden_data.objectFormat = value;
+#if CRANK_VM_LITTLE_ENDIAN
+    header->bytes[3] = (header->bytes[3] & (-32)) | (value & 31);
+#else
+    header->bytes[4] = (header->bytes[3] & (-32)) | (value & 31);
+#endif
 }
 
-static inline unsigned int
+/*static inline unsigned int
 crankvm_object_header_getClassIndex(crankvm_object_header_t *header)
 {
     return header->hidden_data.classIndex;
@@ -264,5 +272,20 @@ crankvm_object_header_setClassIndex(crankvm_object_header_t *header, unsigned in
 {
     header->hidden_data.classIndex = value;
 }
+*/
+
+static inline crankvm_oop_t
+crankvm_object_header_getSlot(crankvm_object_header_t *header, size_t index)
+{
+    if(index >= crankvm_object_header_getSlotCount(header))
+        return 0;
+
+    crankvm_oop_t *slots = (crankvm_oop_t *)&header[1];
+    return slots[index];
+}
+
+LIB_CRANK_VM_EXPORT size_t crankvm_object_header_getSmalltalkSize(crankvm_object_header_t *header);
+
+#define crankvm_string_printf_arg(x) ((int)crankvm_object_header_getSmalltalkSize((crankvm_object_header_t*)(x))), (char*)((crankvm_oop_t)(x) + 8)
 
 #endif //_CRANK_VM_OBJECT_MODEL_H_

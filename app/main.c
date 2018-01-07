@@ -66,5 +66,13 @@ int main(int argc, const char* argv[])
 
     }
 
+    error = crankvm_context_run(context);
+    if(error)
+    {
+        fprintf(stderr, "Failed to run the image in a crank vm context: %s\n", crankvm_error_getString(error));
+        return 0;
+
+    }
+
     return 0;
 }
