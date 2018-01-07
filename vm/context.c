@@ -2,6 +2,8 @@
 #include <string.h>
 #include <malloc.h>
 
+crankvm_error_t crankvm_interpret(crankvm_context_t *context, crankvm_MethodContext_t *methodContext, crankvm_oop_t *returnValue);
+
 LIB_CRANK_VM_EXPORT crankvm_error_t
 crankvm_context_create(crankvm_context_t **returnContext)
 {
@@ -64,7 +66,9 @@ crankvm_context_isNil(crankvm_context_t *context, void *pointer)
 static crankvm_ProcessorScheduler_t *
 crankvm_context_getScheduler(crankvm_context_t *context)
 {
-    if(!context->specialObjectsArray || crankvm_context_isNil(context, context->specialObjectsArray->schedulerAssociation))
+    if(!context->specialObjectsArray ||
+        crankvm_context_isNil(context, context->specialObjectsArray->schedulerAssociation) ||
+        crankvm_oop_isNil(context, context->specialObjectsArray->schedulerAssociation->value))
         return NULL;
 
     return (crankvm_ProcessorScheduler_t*)context->specialObjectsArray->schedulerAssociation->value;
@@ -80,15 +84,40 @@ crankvm_context_getActiveProcess(crankvm_context_t *context)
     return (crankvm_Process_t*)scheduler->activeProcess;
 }
 
+static crankvm_MethodContext_t *
+crankvm_context_getEntryMethodContext(crankvm_context_t *context)
+{
+    if(!context->specialObjectsArray ||
+        crankvm_object_header_getSlotCount((crankvm_object_header_t *)context->specialObjectsArray) < 63 ||
+        crankvm_context_isNil(context, context->specialObjectsArray->crankVMEntryContext) ||
+        crankvm_oop_isNil(context, context->specialObjectsArray->crankVMEntryContext->value))
+        return NULL;
+
+    printf("entry point key: '%.*s'\n", crankvm_string_printf_arg(context->specialObjectsArray->crankVMEntryContext->key));
+    return (crankvm_MethodContext_t *)context->specialObjectsArray->crankVMEntryContext->value;
+}
+
 LIB_CRANK_VM_EXPORT crankvm_error_t
 crankvm_context_run(crankvm_context_t *context)
 {
-    crankvm_Process_t *process = crankvm_context_getActiveProcess(context);
-    if(!process)
-        return CRANK_VM_ERROR_UNSUPPORTED_OPERATION;
+    crankvm_MethodContext_t *methodContext = crankvm_context_getEntryMethodContext(context);
+    if(!methodContext)
+    {
+        crankvm_Process_t *process = crankvm_context_getActiveProcess(context);
+        if(!process || crankvm_oop_isNil(context, process->suspendedContext))
+            return CRANK_VM_ERROR_UNSUPPORTED_OPERATION;
 
-    printf("Processor name: '%.*s'\n", crankvm_string_printf_arg(context->specialObjectsArray->schedulerAssociation->key));
-    printf("Active process %p name '%.*s' suspended context %p\n", process, crankvm_string_printf_arg(process->name), (void*)process->suspendedContext);
+        printf("Processor name: '%.*s'\n", crankvm_string_printf_arg(context->specialObjectsArray->schedulerAssociation->key));
+        printf("Active process %p name '%.*s' suspended context %p\n", process, crankvm_string_printf_arg(process->name), (void*)process->suspendedContext);
+        methodContext = (crankvm_MethodContext_t *)process->suspendedContext;
+    }
 
+    printf("Entry method context: %p\n", methodContext);
+    crankvm_oop_t returnValue;
+    crankvm_error_t error = crankvm_interpret(context, methodContext, &returnValue);
+    if(error)
+        return error;
+
+    printf("Interpreter result: %p\n", (void*)returnValue);
     return CRANK_VM_OK;
 }

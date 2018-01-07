@@ -2,6 +2,7 @@
 #define CRANK_VM_SPECIAL_OBJECTS_H
 
 #include <crank-vm/objectmodel.h>
+#include <crank-vm/error.h>
 
 /**
  * ProtoObject layout
@@ -13,6 +14,7 @@ typedef struct crankvm_ProtoObject_s
 } crankvm_ProtoObject_t;
 
 typedef crankvm_ProtoObject_t crankvm_Object_t;
+typedef crankvm_ProtoObject_t crankvm_CompiledCode_t;
 
 /**
  * Behavior layout
@@ -52,7 +54,7 @@ typedef struct crankvm_InstructionStream_s
  */
 typedef struct crankvm_MethodContext_s
 {
-    crankvm_Object_t baseClass;
+    crankvm_InstructionStream_t baseClass;
 
     crankvm_oop_t stackp;
     crankvm_oop_t method;
@@ -120,7 +122,7 @@ typedef struct crankvm_special_object_array_s
 
     crankvm_oop_t ClassBitmap; // 4
 	crankvm_oop_t ClassSmallInteger; // 5
-	crankvm_oop_t ClassByteString; // ClassString "N.B.  Actually class ByteString"
+	crankvm_oop_t ClassByteString; // 6 ClassString "N.B.  Actually class ByteString"
 	crankvm_oop_t ClassArray; // 7.
 	crankvm_oop_t old_SmalltalkDictionary; // 8."  "Do not delete!"
 	crankvm_oop_t ClassFloat;// 9.
@@ -144,13 +146,18 @@ typedef struct crankvm_special_object_array_s
 	crankvm_oop_t ProcessSignalingLowSpace; //22.	"was TheInputSemaphore"
 	crankvm_oop_t SpecialSelectors; //23.
 
-    crankvm_oop_t CharacterTable; //nil.	"Must be unused by the VM"
+    crankvm_oop_t CharacterTable; //24 nil.	"Must be unused by the VM"
 	crankvm_oop_t SelectorMustBeBoolean; //25.
 	crankvm_oop_t ClassByteArray; //26.
 	crankvm_oop_t unused_ClassProcess;//; //27. unused"
 	crankvm_oop_t CompactClasses; //28.
 	crankvm_oop_t TheTimerSemaphore; //29.
 	crankvm_oop_t TheInterruptSemaphore; //30.
+
+    crankvm_oop_t unknown_1; //31.
+    crankvm_oop_t unknown_2; //32.
+    crankvm_oop_t unknown_3; //33.
+
 	crankvm_oop_t SelectorCannotInterpret; //34.
 	crankvm_oop_t old_MethodContextProto; //35.
 	crankvm_oop_t ClassBlockClosure; //36.
@@ -186,6 +193,8 @@ typedef struct crankvm_special_object_array_s
 
 	crankvm_oop_t LowcodeContextMark; //60.
 	crankvm_oop_t LowcodeNativeContextClass; //61.
+
+    crankvm_Association_t *crankVMEntryContext;
 } crankvm_special_object_array_t;
 
 typedef struct crankvm_context_s crankvm_context_t;
@@ -209,5 +218,9 @@ crankvm_specialObject_false(crankvm_context_t *context)
 {
     return crankvm_context_getSpecialObjectsArray(context)->falseObject;
 }
+
+
+LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_MethodContext_validate(crankvm_context_t *context, crankvm_MethodContext_t *methodContext);
+LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_CompiledCode_validate(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode);
 
 #endif //CRANK_VM_SPECIAL_OBJECTS_H

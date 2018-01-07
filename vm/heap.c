@@ -155,6 +155,7 @@ crankvm_heap_loadImageContent(crankvm_context_t *context, crankvm_read_memory_st
 
     do
     {
+        printf("Load segment %zu\n", nextSegmentSize);
         crankvm_spur_segment_info_t *segmentInfo = crankvm_heap_allocateSegmentInfo(heap);
         if(!segmentInfo)
             return CRANK_VM_ERROR_OUT_OF_MEMORY;
@@ -174,6 +175,7 @@ crankvm_heap_loadImageContent(crankvm_context_t *context, crankvm_read_memory_st
         uint64_t *bridge = (uint64_t*)(targetPointer + nextSegmentSize - 8);
         size_t bridgeSpan = 0;
         size_t bridgeSize = *bridge;
+        printf("bridgeSize %zu\n", bridgeSize);
         crankvm_object_header_t *bridgeObject = (crankvm_object_header_t *)bridge;
         if(crankvm_object_header_getRawSlotCount((crankvm_object_header_t*)(bridge - 1)) == 0)
         {
@@ -211,8 +213,11 @@ crankvm_heap_loadImageContent(crankvm_context_t *context, crankvm_read_memory_st
         if(crankvm_object_header_getObjectFormat(iterator.currentHeader) < CRANK_VM_OBJECT_FORMAT_INDEXABLE_64)
         {
             for(size_t i = 0; i < iterator.currentObjectSlotCount; ++i)
-                iterator.currentObjectSlots[i] += currentSegmentInfo->swizzle;
-        }            
+            {
+                if(crankvm_oop_isPointers(iterator.currentObjectSlots[i]))
+                    iterator.currentObjectSlots[i] += currentSegmentInfo->swizzle;
+            }
+        }
     }
     assert(iterator.currentObjectEnd == targetSegment->size);
 

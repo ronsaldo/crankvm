@@ -4,7 +4,6 @@
 #include <crank-vm/objectmodel.h>
 #include <crank-vm/error.h>
 
-
 typedef struct crankvm_spur_segment_info_s {
 	uint8_t *startAddress;
 	size_t size;
