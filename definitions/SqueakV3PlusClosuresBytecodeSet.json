@@ -1,0 +1,277 @@
+{
+    "pushReceiverVariableShort" : {
+        "range-first" : 0,
+        "range-last" : 15
+    },
+    "pushTempShort" : {
+        "range-first" : 16,
+        "range-last" : 31
+    },
+
+    "pushLiteralShort" : {
+        "range-first" : 32,
+        "range-last" : 63
+    },
+
+    "pushLiteralVariableShort" : {
+        "range-first" : 64,
+        "range-last" : 95
+    },
+
+    "popStoreReceiverVariableShort" : {
+        "range-first" : 96,
+        "range-last" : 103
+    },
+
+    "popStoreTemporalVariableShort" : {
+        "range-first" : 104,
+        "range-last" : 111
+    },
+
+    "pushReceiver" : {
+        "opcode" : 112
+    },
+    "pushTrue" : {
+        "opcode" : 113
+    },
+    "pushFalse" : {
+        "opcode" : 114
+    },
+    "pushNil" : {
+        "opcode" : 115
+    },
+    "pushMinusOne" : {
+        "opcode" : 116
+    },
+    "pushZero" : {
+        "opcode" : 117
+    },
+    "pushOne" : {
+        "opcode" : 118
+    },
+    "pushTwo" : {
+        "opcode" : 119
+    },
+
+    "returnReceiver" : {
+        "opcode" : 120
+    },
+    "returnTrue" : {
+        "opcode" : 121
+    },
+    "returnFalse" : {
+        "opcode" : 122
+    },
+    "returnNil" : {
+        "opcode" : 123
+    },
+
+    "returnTop" : {
+        "opcode" : 124
+    },
+    "blockReturnTop" : {
+        "opcode" : 125
+    },
+
+
+    "extendedPush" : {
+        "opcode" : 128
+    },
+
+    "extendedStore" : {
+        "opcode" : 129
+    },
+
+    "extendedPopAndStore" : {
+        "opcode" : 130
+    },
+
+    "singleExtendedSend" : {
+        "opcode" : 131
+    },
+
+    "doubleExtendedDoAnything" : {
+        "opcode" : 132
+    },
+
+    "singleExtendedSuperSend" : {
+        "opcode" : 133
+    },
+
+    "secondExtendedSend" : {
+        "opcode" : 134
+    },
+
+    "popStackTop" : {
+        "opcode" : 135
+    },
+
+    "duplicateStackTop" : {
+        "opcode" : 136
+    },
+
+    "pushThisContext" : {
+        "opcode" : 137
+    },
+
+    "pushOrPopNewArray" : {
+        "opcode" : 138
+    },
+
+    "callPrimitive" : {
+        "opcode" : 139
+    },
+
+    "pushRemoteTempLong" : {
+        "opcode" : 140
+    },
+    "storeRemoteTempLong" : {
+        "opcode" : 141
+    },
+    "popStoreRemoteTempLong" : {
+        "opcode" : 142
+    },
+
+    "pushClosureCopyCopiedValues" : {
+        "opcode" : 143
+    },
+
+    "shortJump" : {
+        "range-first" : 144,
+        "range-last" : 151
+    },
+    "shortJumpIfFalse" : {
+        "range-first" : 152,
+        "range-last" : 159
+    },
+
+    "longJump" : {
+        "range-first" : 160,
+        "range-last" : 167
+    },
+    "longJumpIfTrue" : {
+        "range-first" : 168,
+        "range-last" : 171
+    },
+    "longJumpIfFalse" : {
+        "range-first" : 172,
+        "range-last" : 175
+    },
+
+    "arithmeticMessageAdd" : {
+        "opcode" : 176
+    },
+    "arithmeticMessageMinus" : {
+        "opcode" : 177
+    },
+    "arithmeticMessageLessThan" : {
+        "opcode" : 178
+    },
+    "arithmeticMessageGreaterThan" : {
+        "opcode" : 179
+    },
+    "arithmeticMessageLessEqual" : {
+        "opcode" : 180
+    },
+    "arithmeticMessageGreaterEqual" : {
+        "opcode" : 181
+    },
+    "arithmeticMessageEqual" : {
+        "opcode" : 182
+    },
+    "arithmeticMessageNotEqual" : {
+        "opcode" : 183
+    },
+    "arithmeticMessageMultiply" : {
+        "opcode" : 184
+    },
+    "arithmeticMessageDivide" : {
+        "opcode" : 185
+    },
+    "arithmeticMessageRemainder" : {
+        "opcode" : 186
+    },
+    "arithmeticMessageMakePoint" : {
+        "opcode" : 187
+    },
+    "arithmeticMessageBitShift" : {
+        "opcode" : 188
+    },
+    "arithmeticMessageIntegerDivision" : {
+        "opcode" : 189
+    },
+    "arithmeticMessageBitAnd" : {
+        "opcode" : 190
+    },
+    "arithmeticMessageBitOr" : {
+        "opcode" : 191
+    },
+
+
+    "specialMessageAt" : {
+        "opcode" : 192
+    },
+    "specialMessageAtPut" : {
+        "opcode" : 193
+    },
+    "specialMessageSize" : {
+        "opcode" : 194
+    },
+    "specialMessageNext" : {
+        "opcode" : 195
+    },
+    "specialMessageNextPut" : {
+        "opcode" : 196
+    },
+    "specialMessageAtEnd" : {
+        "opcode" : 197
+    },
+    "specialMessageIdentityEqual" : {
+        "opcode" : 198
+    },
+    "specialMessageClass" : {
+        "opcode" : 199
+    },
+
+    "specialMessageBlockCopy" : {
+        "opcode" : 200
+    },
+
+    "specialMessageValue" : {
+        "opcode" : 201
+    },
+    "specialMessageValueArg" : {
+        "opcode" : 202
+    },
+    "specialMessageDo" : {
+        "opcode" : 203
+    },
+
+    "specialMessageNew" : {
+        "opcode" : 204
+    },
+    "specialMessageNewArray" : {
+        "opcode" : 205
+    },
+    "specialMessageX" : {
+        "opcode" : 206
+    },
+    "specialMessageY" : {
+        "opcode" : 207
+    },
+
+
+    "sendShortArgs0" : {
+        "range-first" : 208,
+        "range-last" : 223
+    },
+    "sendShortArgs1" : {
+        "range-first" : 224,
+        "range-last" : 239
+    },
+    "sendShortArgs2" : {
+        "range-first" : 240,
+        "range-last" : 255
+    }
+
+}

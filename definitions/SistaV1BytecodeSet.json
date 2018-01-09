@@ -1,0 +1,291 @@
+{
+    "pushReceiverVariableShort" : {
+        "range-first" : 0,
+        "range-last" : 15
+    },
+    "pushLiteralVariableShort" : {
+        "range-first" : 16,
+        "range-last" : 31
+    },
+    "pushLiteralShort" : {
+        "range-first" : 32,
+        "range-last" : 63
+    },
+    "pushTempShort" : {
+        "range-first" : 64,
+        "range-last" : 75
+    },
+
+    "pushReceiver" : {
+        "opcode" : 76
+    },
+    "pushTrue" : {
+        "opcode" : 77
+    },
+    "pushFalse" : {
+        "opcode" : 78
+    },
+    "pushNil" : {
+        "opcode" : 79
+    },
+    "pushZero" : {
+        "opcode" : 80
+    },
+    "pushOne" : {
+        "opcode" : 81
+    },
+    "pushThisContext" : {
+        "opcode" : 82
+    },
+    "duplicateStackTop" : {
+        "opcode" : 83
+    },
+
+    "returnReceiver" : {
+        "opcode" : 88
+    },
+    "returnTrue" : {
+        "opcode" : 89
+    },
+    "returnFalse" : {
+        "opcode" : 90
+    },
+    "returnNil" : {
+        "opcode" : 91
+    },
+    "returnTop" : {
+        "opcode" : 92
+    },
+    "blockReturnNil" : {
+        "opcode" : 93
+    },
+    "blockReturnTop" : {
+        "opcode" : 94
+    },
+    "nop" : {
+        "opcode" : 95
+    },
+
+    "specialMessageAdd" : {
+        "opcode" : 96
+    },
+    "specialMessageMinus" : {
+        "opcode" : 97
+    },
+    "specialMessageLessThan" : {
+        "opcode" : 98
+    },
+    "specialMessageGreaterThan" : {
+        "opcode" : 99
+    },
+    "specialMessageLessEqual" : {
+        "opcode" : 100
+    },
+    "specialMessageGreaterEqual" : {
+        "opcode" : 101
+    },
+    "specialMessageEqual" : {
+        "opcode" : 102
+    },
+    "specialMessageNotEqual" : {
+        "opcode" : 103
+    },
+    "specialMessageMultiply" : {
+        "opcode" : 104
+    },
+    "specialMessageDivide" : {
+        "opcode" : 105
+    },
+    "specialMessageRemainder" : {
+        "opcode" : 106
+    },
+    "specialMessageMakePoint" : {
+        "opcode" : 107
+    },
+    "specialMessageBitShift" : {
+        "opcode" : 108
+    },
+    "specialMessageIntegerDivision" : {
+        "opcode" : 109
+    },
+    "specialMessageBitAnd" : {
+        "opcode" : 110
+    },
+    "specialMessageBitOr" : {
+        "opcode" : 111
+    },
+
+    "specialMessageAt" : {
+        "opcode" : 112
+    },
+    "specialMessageAtPut" : {
+        "opcode" : 113
+    },
+    "specialMessageSize" : {
+        "opcode" : 114
+    },
+    "specialMessageNext" : {
+        "opcode" : 115
+    },
+    "specialMessageNextPut" : {
+        "opcode" : 116
+    },
+    "specialMessageAtEnd" : {
+        "opcode" : 117
+    },
+    "specialMessageIdentityEqual" : {
+        "opcode" : 118
+    },
+    "specialMessageClass" : {
+        "opcode" : 119
+    },
+
+    "specialMessageValue" : {
+        "opcode" : 121
+    },
+    "specialMessageValueArg" : {
+        "opcode" : 122
+    },
+    "specialMessageDo" : {
+        "opcode" : 123
+    },
+
+    "specialMessageNew" : {
+        "opcode" : 124
+    },
+    "specialMessageNewArray" : {
+        "opcode" : 125
+    },
+    "specialMessageX" : {
+        "opcode" : 126
+    },
+    "specialMessageY" : {
+        "opcode" : 127
+    },
+
+    "sendShortArgs0" : {
+        "range-first" : 128,
+        "range-last" : 143
+    },
+    "sendShortArgs1" : {
+        "range-first" : 144,
+        "range-last" : 159
+    },
+    "sendShortArgs2" : {
+        "range-first" : 160,
+        "range-last" : 175
+    },
+
+    "jumpShort" : {
+        "range-first" : 176,
+        "range-last" : 183
+    },
+    "jumpOnTrueShort" : {
+        "range-first" : 184,
+        "range-last" : 191
+    },
+    "jumpOnFalseShort" : {
+        "range-first" : 192,
+        "range-last" : 199
+    },
+    "popStoreReceiverVariableShort" : {
+        "range-first" : 200,
+        "range-last" : 207
+    },
+    "popStoreTemporalVariableShort" : {
+        "range-first" : 208,
+        "range-last" : 215
+    },
+    "popStackTop" : {
+        "opcode" : 216
+    },
+
+    "extendA" : {
+        "opcode" : 224
+    },
+    "extendB" : {
+        "opcode" : 225
+    },
+
+    "pushReceiverVariable" : {
+        "opcode" : 226
+    },
+    "pushLiteralVariable" : {
+        "opcode" : 227
+    },
+    "pushLiteral" : {
+        "opcode" : 228
+    },
+    "pushTemporary" : {
+        "opcode" : 229
+    },
+    "pushNTemps" : {
+        "opcode" : 230
+    },
+    "pushInteger" : {
+        "opcode" : 231
+    },
+    "pushCharacter" : {
+        "opcode" : 232
+    },
+    "pushArrayWithElements" : {
+        "opcode" : 233
+    },
+
+    "send" : {
+        "opcode" : 234
+    },
+    "superSend" : {
+        "opcode" : 235
+    },
+
+    "trapOnBehavior" : {
+        "opcode" : 236
+    },
+
+    "jump" : {
+        "opcode" : 237
+    },
+    "jumpOnTrue" : {
+        "opcode" : 238
+    },
+    "jumpOnFalse" : {
+        "opcode" : 239
+    },
+
+    "popStoreReceiverVariable" : {
+        "opcode" : 240
+    },
+    "popStoreLiteralVariable" : {
+        "opcode" : 241
+    },
+    "popStoreTemporalVariable" : {
+        "opcode" : 242
+    },
+
+    "storeReceiverVariable" : {
+        "opcode" : 243
+    },
+    "storeLiteralVariable" : {
+        "opcode" : 244
+    },
+    "storeTemporalVariable" : {
+        "opcode" : 245
+    },
+
+    "callPrimitive" : {
+        "opcode" : 248
+    },
+    "pushClosure" : {
+        "opcode" : 250
+    },
+    "pushTemporaryInVector" : {
+        "opcode" : 251
+    },
+    "storeTemporalInVector" : {
+        "opcode" : 252
+    },
+    "popStoreTemporalInVector" : {
+        "opcode" : 253
+    }
+}
