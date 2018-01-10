@@ -60,6 +60,8 @@ typedef struct crankvm_MethodContext_s
     crankvm_oop_t method;
     crankvm_oop_t closureOrNil;
     crankvm_oop_t receiver;
+
+    crankvm_oop_t stackSlots[];
 } crankvm_MethodContext_t;
 
 /**
@@ -110,6 +112,60 @@ typedef struct crankvm_Process_s
     crankvm_oop_t terminating;
 } crankvm_Process_t;
 
+typedef struct crankvm_special_selector_with_arg_count_s
+{
+    crankvm_oop_t selector;
+    crankvm_oop_t argumentCountOop;
+} crankvm_special_selector_with_arg_count_t;
+
+typedef struct crankvm_special_selectors_s
+{
+    crankvm_Object_t baseClass;
+
+    // Arithmetic selectors
+
+    //#+ 1 #- 1 #< 1 #> 1 #<= 1 #>= 1 #= 1 #~= 1
+    crankvm_special_selector_with_arg_count_t add;
+    crankvm_special_selector_with_arg_count_t subtract;
+    crankvm_special_selector_with_arg_count_t lessThan;
+    crankvm_special_selector_with_arg_count_t greaterThan;
+    crankvm_special_selector_with_arg_count_t lessOrEqual;
+    crankvm_special_selector_with_arg_count_t greaterOrEqual;
+    crankvm_special_selector_with_arg_count_t equal;
+    crankvm_special_selector_with_arg_count_t notEqual;
+
+	//#* 1 #/ 1 #\\ 1 #@ 1 #bitShift: 1 #// 1 #bitAnd: 1 #bitOr: 1
+    crankvm_special_selector_with_arg_count_t multiply;
+    crankvm_special_selector_with_arg_count_t divide;
+    crankvm_special_selector_with_arg_count_t remainder;
+    crankvm_special_selector_with_arg_count_t makePoint;
+    crankvm_special_selector_with_arg_count_t bitShift;
+    crankvm_special_selector_with_arg_count_t integerDivide;
+    crankvm_special_selector_with_arg_count_t bitAnd;
+    crankvm_special_selector_with_arg_count_t bitOr;
+
+    //#at: 1 #at:put: 2 #size 0 #next 0 #nextPut: 1 #atEnd 0 #== 1 #class 0
+    crankvm_special_selector_with_arg_count_t at;
+    crankvm_special_selector_with_arg_count_t atPut;
+    crankvm_special_selector_with_arg_count_t size;
+    crankvm_special_selector_with_arg_count_t next;
+    crankvm_special_selector_with_arg_count_t nextPut;
+    crankvm_special_selector_with_arg_count_t atEnd;
+    crankvm_special_selector_with_arg_count_t identityEquals;
+    crankvm_special_selector_with_arg_count_t clazz;
+
+	//#blockCopy: 1 #value 0 #value: 1 #do: 1 #new 0 #new: 1 #x 0 #y 0
+    crankvm_special_selector_with_arg_count_t blockCopy;
+    crankvm_special_selector_with_arg_count_t value;
+    crankvm_special_selector_with_arg_count_t valueWithArg;
+    crankvm_special_selector_with_arg_count_t doBlock;
+    crankvm_special_selector_with_arg_count_t newObject;
+    crankvm_special_selector_with_arg_count_t newObjectWithSize;
+    crankvm_special_selector_with_arg_count_t x;
+    crankvm_special_selector_with_arg_count_t y;
+
+} crankvm_special_selectors_t;
+
 typedef struct crankvm_special_object_array_s
 {
     crankvm_object_header_t objectHeader;
@@ -144,7 +200,7 @@ typedef struct crankvm_special_object_array_s
     crankvm_oop_t SelectorDoesNotUnderstand; //20.
 	crankvm_oop_t SelectorCannotReturn; //21.
 	crankvm_oop_t ProcessSignalingLowSpace; //22.	"was TheInputSemaphore"
-	crankvm_oop_t SpecialSelectors; //23.
+	crankvm_special_selectors_t *specialSelectors; //23.
 
     crankvm_oop_t CharacterTable; //24 nil.	"Must be unused by the VM"
 	crankvm_oop_t SelectorMustBeBoolean; //25.

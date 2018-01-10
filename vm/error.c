@@ -17,6 +17,8 @@ LIB_CRANK_VM_EXPORT const char *crankvm_error_getString(crankvm_error_t error)
     case CRANK_VM_ERROR_UNRECOGNIZED_IMAGE_FORMAT: return "Unrecognized image format.";
     case CRANK_VM_ERROR_BAD_IMAGE_WORD_SIZE: return "Bad image word size.";
     case CRANK_VM_ERROR_BAD_IMAGE_ENDIANNESS: return "Bad image endiannes.";
+    case CRANK_VM_ERROR_STACK_OVERFLOW: return "Stack overflow.";
+    case CRANK_VM_ERROR_STACK_UNDERFLOW: return "Stack underfow.";
     default: return "Unknown error code.";
     }
 }

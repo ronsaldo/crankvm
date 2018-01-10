@@ -18,6 +18,8 @@ typedef enum crankvm_error_e
     CRANK_VM_ERROR_UNRECOGNIZED_IMAGE_FORMAT = -10,
     CRANK_VM_ERROR_BAD_IMAGE_WORD_SIZE = -11,
     CRANK_VM_ERROR_BAD_IMAGE_ENDIANNESS = -12,
+    CRANK_VM_ERROR_STACK_OVERFLOW = -13,
+    CRANK_VM_ERROR_STACK_UNDERFLOW = -14,
 } crankvm_error_t;
 
 LIB_CRANK_VM_EXPORT const char *crankvm_error_getString(crankvm_error_t error);
