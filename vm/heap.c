@@ -50,6 +50,93 @@ crankvm_heap_segment_allocate(crankvm_heap_segment_t *segment, size_t size)
     return result;
 }
 
+static crankvm_object_header_t *
+crankvm_heap_allocate(crankvm_heap_t *heap, size_t size)
+{
+    return crankvm_heap_segment_allocate(&heap->firstSegment, size);
+}
+
+crankvm_object_header_t *
+crankvm_heap_newObject(crankvm_context_t *context, crankvm_object_format_t format, size_t fixedSize, size_t variableSize)
+{
+    size_t logicalSize = fixedSize + variableSize;
+    size_t slotCount = 0;
+
+    crankvm_object_format_t instanceFormat = format;
+    if(format < CRANK_VM_OBJECT_FORMAT_INDEXABLE_64)
+    {
+        slotCount = logicalSize;
+    }
+    else if(format == CRANK_VM_OBJECT_FORMAT_INDEXABLE_64)
+    {
+#ifdef CRANK_VM_64_BITS
+        slotCount = logicalSize;
+#else
+        slotCount = logicalSize * 2;
+#endif
+    }
+    else if(format <= CRANK_VM_OBJECT_FORMAT_INDEXABLE_32_1)
+    {
+        const size_t elementsPerSlot = sizeof(crankvm_oop_t) / 4;
+        slotCount = (logicalSize + elementsPerSlot - 1) / elementsPerSlot;
+
+        instanceFormat += slotCount * elementsPerSlot - logicalSize;
+    }
+    else if(format <= CRANK_VM_OBJECT_FORMAT_INDEXABLE_16_3)
+    {
+        const size_t elementsPerSlot = sizeof(crankvm_oop_t) / 2;
+        slotCount = (logicalSize + elementsPerSlot - 1) / elementsPerSlot;
+
+        instanceFormat += slotCount * elementsPerSlot - logicalSize;
+    }
+    else if(format <= CRANK_VM_OBJECT_FORMAT_INDEXABLE_8_7)
+    {
+        const size_t elementsPerSlot = sizeof(crankvm_oop_t);
+        slotCount = (logicalSize + elementsPerSlot - 1) / elementsPerSlot;
+
+        instanceFormat += slotCount * elementsPerSlot - logicalSize;
+    }
+    else // if(format <= CRANK_VM_OBJECT_FORMAT_COMPILED_METHOD_7)
+    {
+        const size_t elementsPerSlot = sizeof(crankvm_oop_t);
+        slotCount = (logicalSize + elementsPerSlot - 1) / elementsPerSlot;
+
+        instanceFormat += slotCount * elementsPerSlot - logicalSize;
+    }
+
+    // Make sure there is at least one physical slot, for storing a forwarding pointer.
+    size_t actualSlotCount = slotCount;
+    if(actualSlotCount == 0)
+        actualSlotCount = 1;
+
+    size_t bodySize = actualSlotCount * sizeof(crankvm_oop_t);
+    size_t headerSize = sizeof(crankvm_object_header_t);
+    if(actualSlotCount >= 255)
+        headerSize += sizeof(crankvm_object_header_t);
+
+    size_t objectSize = headerSize + bodySize;
+    crankvm_object_header_t *allocatedObject = (crankvm_object_header_t*)crankvm_heap_allocate(&context->heap, objectSize);
+
+    // Clear the allocated object.
+    memset(allocatedObject, 0, objectSize);
+    if(actualSlotCount >= 255)
+        ++allocatedObject;
+
+    crankvm_object_header_setSlotCount(allocatedObject, slotCount);
+    crankvm_object_header_setObjectFormat(allocatedObject, instanceFormat);
+
+    // Clear the slots with nil for pointers objects.
+    if(format < CRANK_VM_OBJECT_FORMAT_INDEXABLE_64)
+    {
+        crankvm_oop_t *slots = (crankvm_oop_t *)&allocatedObject[1];
+        crankvm_oop_t nilOop = crankvm_specialObject_nil(context);
+        for(size_t i = 0; i < slotCount; ++i)
+            slots[i] = nilOop;
+    }
+
+    return allocatedObject;
+}
+
 static crankvm_error_t
 crankvm_heap_initializeFor(crankvm_heap_t *heap, size_t initialHeapSize)
 {
@@ -133,6 +220,45 @@ crankvm_heap_iterator_advance(crankvm_heap_iterator_t *iterator)
         iterator->currentObjectEnd += sizeof(crankvm_oop_t);
 }
 
+crankvm_object_header_t *
+crankvm_heap_objectPointerAfter(crankvm_heap_t *heap, crankvm_object_header_t *object)
+{
+    size_t objectSize = sizeof(crankvm_object_header_t);
+    size_t slotCount = crankvm_object_header_getSlotCount(object);
+    if(slotCount == 0)
+        slotCount = 1;
+    objectSize += slotCount * sizeof(crankvm_oop_t);
+
+    crankvm_object_header_t *nextObject = (crankvm_object_header_t *) (((uint8_t*)object) + objectSize);
+    if(crankvm_object_header_getRawSlotCount(nextObject) == 255)
+        ++nextObject;
+    return nextObject;
+}
+
+static crankvm_error_t
+crankvm_heap_loadClassTable(crankvm_context_t *context)
+{
+    crankvm_HiddenRoots_t *hiddenRoots = context->roots.hiddenRootsObject;
+    context->numberOfClassTablePages = CRANK_VM_CLASS_TABLE_ROOT_COUNT;
+    context->roots.firstClassTablePage = hiddenRoots->classTablePages[0];
+    if(crankvm_object_isNil(context, context->roots.firstClassTablePage))
+        return CRANK_VM_ERROR_INVALID_PARAMETER;
+
+    // Check the class table.
+    for(size_t i = 1; i < context->numberOfClassTablePages; ++i)
+    {
+        if(crankvm_object_isNil(context, hiddenRoots->classTablePages[i]))
+        {
+            context->numberOfClassTablePages = i;
+            context->nextClassTableIndex = i;
+        }
+    }
+
+    // There are not unused pages, so start wit the second one.
+    context->nextClassTableIndex = 1;
+    return CRANK_VM_OK;
+}
+
 crankvm_error_t
 crankvm_heap_loadImageContent(crankvm_context_t *context, crankvm_read_memory_stream_t *stream, crankvm_image_header_t *header)
 {
@@ -210,22 +336,57 @@ crankvm_heap_loadImageContent(crankvm_context_t *context, crankvm_read_memory_st
         }
 
         // Apply the swizzle to the slots
-        if(crankvm_object_header_getObjectFormat(iterator.currentHeader) < CRANK_VM_OBJECT_FORMAT_INDEXABLE_64)
+        crankvm_object_format_t format = crankvm_oop_getFormat((crankvm_oop_t)iterator.currentHeader);
+        if(format < CRANK_VM_OBJECT_FORMAT_INDEXABLE_64)
         {
             for(size_t i = 0; i < iterator.currentObjectSlotCount; ++i)
             {
-                if(crankvm_oop_isPointers(iterator.currentObjectSlots[i]))
+                if(crankvm_oop_isPointer(iterator.currentObjectSlots[i]))
                     iterator.currentObjectSlots[i] += currentSegmentInfo->swizzle;
+            }
+        }
+        else if(format >= CRANK_VM_OBJECT_FORMAT_COMPILED_METHOD)
+        {
+            crankvm_CompiledCode_t *compiledCode = (crankvm_CompiledCode_t *)iterator.currentHeader;
+            size_t numberOfLiterals = crankvm_CompiledCode_getNumberOfLiterals(context, compiledCode);
+            //printf("Swizzle compiled %p literal count %zu\n", compiledCode, numberOfLiterals);
+            for(size_t i = 0; i < numberOfLiterals; ++i)
+            {
+                if(crankvm_oop_isPointer(compiledCode->literals[i]))
+                    compiledCode->literals[i] += currentSegmentInfo->swizzle;
             }
         }
     }
     assert(iterator.currentObjectEnd == targetSegment->size);
 
-    context->specialObjectsArray = (crankvm_special_object_array_t*)(header->specialObjectsOop - header->startOfMemory + (uintptr_t)heap->firstSegment.address);
+    context->roots.specialObjectsArray = (crankvm_special_object_array_t*)(header->specialObjectsOop - header->startOfMemory + (uintptr_t)heap->firstSegment.address);
     // TODO: Validate the special objects array
+
+    // Make sure nil, false, and true are in sequencial order.
+    context->roots.nilOop = context->roots.specialObjectsArray->nilObject;
+    context->roots.falseOop = context->roots.specialObjectsArray->falseObject;
+    context->roots.trueOop = context->roots.specialObjectsArray->trueObject;
+
+    if(context->roots.nilOop != (crankvm_oop_t)heap->firstSegment.address)
+        return CRANK_VM_ERROR_INVALID_PARAMETER;
+    if(context->roots.falseOop != (crankvm_oop_t)crankvm_heap_objectPointerAfter(heap, (crankvm_object_header_t*)context->roots.nilOop))
+        return CRANK_VM_ERROR_INVALID_PARAMETER;
+    if(context->roots.trueOop != (crankvm_oop_t)crankvm_heap_objectPointerAfter(heap, (crankvm_object_header_t*)context->roots.falseOop))
+        return CRANK_VM_ERROR_INVALID_PARAMETER;
+
+    context->roots.freeListObject = (crankvm_oop_t)crankvm_heap_objectPointerAfter(heap, (crankvm_object_header_t*)context->roots.trueOop);
+
+    // Get the class table.
+    context->roots.hiddenRootsObject = (crankvm_HiddenRoots_t*)crankvm_heap_objectPointerAfter(heap, (crankvm_object_header_t*)context->roots.freeListObject);
+    error = crankvm_heap_loadClassTable(context);
+    if(error)
+        return error;
+
+    // TODO: Swizzle the object stacks SpurMemoryManager>> #swizzleObjStackAt:
 
     free(heap->segmentInfos);
     heap->segmentInfoCapacity = 0;
     heap->segmentInfoSize = 0;
+
     return CRANK_VM_OK;
 }

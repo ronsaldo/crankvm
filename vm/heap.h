@@ -51,4 +51,8 @@ crankvm_error_t crankvm_heap_loadImageContent(crankvm_context_t *context, crankv
 crankvm_heap_iterator_t crankvm_heap_iterator_create(crankvm_heap_t *heap);
 void crankvm_heap_iterator_advance(crankvm_heap_iterator_t *iterator);
 
+crankvm_object_header_t *crankvm_heap_objectPointerAfter(crankvm_heap_t *heap, crankvm_object_header_t *object);
+
+crankvm_object_header_t *crankvm_heap_newObject(crankvm_context_t *context, crankvm_object_format_t format, size_t fixedSize, size_t variableSize);
+
 #endif //CRANK_VM_HEAP_H

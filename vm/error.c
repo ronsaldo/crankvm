@@ -19,6 +19,8 @@ LIB_CRANK_VM_EXPORT const char *crankvm_error_getString(crankvm_error_t error)
     case CRANK_VM_ERROR_BAD_IMAGE_ENDIANNESS: return "Bad image endiannes.";
     case CRANK_VM_ERROR_STACK_OVERFLOW: return "Stack overflow.";
     case CRANK_VM_ERROR_STACK_UNDERFLOW: return "Stack underfow.";
+    case CRANK_VM_ERROR_RECEIVER_CLASS_NIL: return "Receiver class nil.";
+    case CRANK_VM_ERROR_CALLED_METHOD_ARGUMENT_MISMATCH: return "Called method argument count mismatch.";
     default: return "Unknown error code.";
     }
 }

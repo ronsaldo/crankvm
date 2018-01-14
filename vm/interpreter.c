@@ -9,12 +9,15 @@ typedef struct crankvm_interpreter_state_s
     crankvm_context_t *context;
     crankvm_oop_t *callerReturnValuePointer;
 
+    crankvm_compiled_code_header_t codeHeader;
+
     intptr_t stackPointer;
     intptr_t stackLimit;
     uint8_t *instructions;
 
     intptr_t pc;
     int currentBytecode;
+    int currentBytecodeSetOffset;
 
     intptr_t nextPC;
     int nextBytecode;
@@ -23,6 +26,7 @@ typedef struct crankvm_interpreter_state_s
     struct
     {
         crankvm_MethodContext_t *methodContext;
+        crankvm_CompiledCode_t *method;
         crankvm_oop_t receiver;
     } objects;
 
@@ -48,30 +52,8 @@ do { \
 #define popOop() crankvm_interpreter_popOop(self)
 
 #define _theContext (self->context)
-#define _theSpecialObjectsArray (_theContext->specialObjectsArray)
+#define _theSpecialObjectsArray (_theContext->roots.specialObjectsArray)
 #define _theSpecialSelectors (_theSpecialObjectsArray->specialSelectors)
-
-LIB_CRANK_VM_EXPORT crankvm_error_t
-crankvm_CompiledCode_validate(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode)
-{
-    if(crankvm_context_isNilOrNull(context, compiledCode))
-        return CRANK_VM_ERROR_NULL_POINTER;
-
-    return CRANK_VM_OK;
-}
-
-LIB_CRANK_VM_EXPORT crankvm_error_t
-crankvm_MethodContext_validate(crankvm_context_t *context, crankvm_MethodContext_t *methodContext)
-{
-    if(crankvm_context_isNilOrNull(context, methodContext))
-        return CRANK_VM_ERROR_NULL_POINTER;
-
-    if(!crankvm_oop_isSmallInteger(methodContext->baseClass.pc) ||
-        !crankvm_oop_isSmallInteger(methodContext->stackp))
-        return CRANK_VM_ERROR_INVALID_PARAMETER;
-
-    return CRANK_VM_OK;
-}
 
 static inline crankvm_error_t
 crankvm_interpreter_fetchNextInstruction(crankvm_interpreter_state_t *self)
@@ -88,7 +70,14 @@ crankvm_interpreter_fetchMethodContext(crankvm_interpreter_state_t *self)
     if(error)
         return error;
 
+    // Read some elements for easier access.
     self->objects.receiver = self->objects.methodContext->receiver;
+    self->objects.method = (crankvm_CompiledCode_t*)self->objects.methodContext->method;
+
+    // Decode the method/fullblock header.
+    error = crankvm_specialObject_getCompiledCodeHeader(&self->codeHeader, self->objects.method);
+    if(error)
+        return error;
 
     self->nextPC = crankvm_oop_decodeSmallInteger(self->objects.methodContext->baseClass.pc);
     self->stackPointer = crankvm_oop_decodeSmallInteger(self->objects.methodContext->stackp);
@@ -98,8 +87,13 @@ crankvm_interpreter_fetchMethodContext(crankvm_interpreter_state_t *self)
     --self->nextPC;
 
     // Get the pointer into the instructions.
-    printf("\tmethod: %p pc: %d stackp: %d\n", (void*)self->objects.methodContext->method, (int)self->pc, (int)self->stackPointer);
+    crankvm_oop_t methodSelector = crankvm_CompiledCode_getSelector(_theContext, self->objects.method);
+    printf("\tmethod: %p [#%.*s]pc: %d stackp: %d\n",
+        (void*)self->objects.method,
+        crankvm_string_printf_arg(methodSelector),
+        (int)self->nextPC, (int)self->stackPointer);
     self->instructions = (uint8_t*)(self->objects.methodContext->method + sizeof(crankvm_object_header_t));
+    self->currentBytecodeSetOffset = self->codeHeader.isAlternateBytecode ? 256 : 0;
 
     // Fetch the first bytecode.
     error = crankvm_interpreter_fetchNextInstruction(self);
@@ -142,7 +136,9 @@ static inline crankvm_oop_t
 crankvm_interpreter_popOop(crankvm_interpreter_state_t *self)
 {
     assert(self->stackPointer > 0);
-    return self->objects.methodContext->stackSlots[--self->stackPointer];
+    crankvm_oop_t result = self->objects.methodContext->stackSlots[--self->stackPointer];
+    self->objects.methodContext->stackSlots[self->stackPointer] = _theContext->roots.nilOop;
+    return result;
 }
 
 static inline crankvm_oop_t
@@ -164,7 +160,7 @@ crankvm_interpreter_localMethodReturnOop(crankvm_interpreter_state_t *self, cran
     self->objects.methodContext->baseClass.sender = crankvm_specialObject_nil(self->context);
 
     // If the return context is nil, then it is time to finish the interepreter
-    if(crankvm_context_isNil(self->context, returnContext))
+    if(crankvm_object_isNil(self->context, returnContext))
     {
         if(self->callerReturnValuePointer)
             *self->callerReturnValuePointer = returnValue;
@@ -191,13 +187,75 @@ crankvm_interpreter_returnOopFromBlock(crankvm_interpreter_state_t *self, crankv
 }
 
 static crankvm_error_t
+crankvm_interpreter_activateMethodWithArguments(crankvm_interpreter_state_t *self, int expectedArgumentCount, crankvm_oop_t methodOop)
+{
+    // Get the compiled method context.
+    crankvm_compiled_code_header_t calledHeader;
+    crankvm_error_t error = crankvm_specialObject_getCompiledCodeHeader(&calledHeader, (crankvm_CompiledCode_t*)methodOop);
+    if(error)
+        return error;
+
+    // Check the number of arguments
+    if(calledHeader.numberOfArguments != expectedArgumentCount)
+        return CRANK_VM_ERROR_CALLED_METHOD_ARGUMENT_MISMATCH;
+
+    // Compute the initial pc
+    uintptr_t initialPC = (calledHeader.numberOfLiterals + 1) *sizeof(crankvm_oop_t) + 1;
+    size_t compiledMethodSize = crankvm_object_header_getSmalltalkSize((crankvm_object_header_t*)methodOop);
+    if(initialPC >= compiledMethodSize)
+        return CRANK_VM_ERROR_INVALID_PARAMETER;
+
+    // Create the new context.
+    crankvm_MethodContext_t *newContext = crankvm_MethodContext_create(_theContext, calledHeader.largeFrameRequired);
+
+    // Set the sender context.
+    newContext->baseClass.sender = (crankvm_oop_t)_theContext;
+    newContext->baseClass.pc = crankvm_oop_encodeSmallInteger(initialPC);
+    newContext->method = methodOop;
+
+    // Pop the arguments into the new context.
+    for(int i = 0; i < expectedArgumentCount; ++i)
+        newContext->stackSlots[expectedArgumentCount - i - 1] = popOop();
+
+    // Pop the receiver into the new context.
+    newContext->receiver = popOop();
+    newContext->stackp = crankvm_oop_encodeSmallInteger(expectedArgumentCount + calledHeader.numberOfTemporaries);
+
+    // Change into the new context.
+    self->objects.methodContext = newContext;
+    printf("Activating new context %p\n", newContext);
+    return crankvm_interpreter_fetchMethodContext(self);
+}
+
+static crankvm_error_t
 crankvm_interpreter_sendTo(crankvm_interpreter_state_t *self, int expectedArgumentCount, crankvm_oop_t selector)
 {
     checkSizeToPop(expectedArgumentCount + 1);
 
     crankvm_oop_t receiver = crankvm_interpreter_stackOopAt(self, expectedArgumentCount);
-    printf("TODO: Send #%.*s to %p\n", crankvm_string_printf_arg(selector), (void*)receiver);
-    UNIMPLEMENTED();
+    printf("Send #%.*s to %p\n", crankvm_string_printf_arg(selector), (void*)receiver);
+
+    // Get the receiver class.
+    crankvm_oop_t receiverClass = crankvm_object_getClass(_theContext, receiver);
+    if(crankvm_oop_isNil(_theContext, receiverClass))
+        return CRANK_VM_ERROR_RECEIVER_CLASS_NIL;
+
+    // Lookup the selector
+    crankvm_oop_t methodOop = crankvm_Behavior_lookupSelector(_theContext, (crankvm_Behavior_t*)receiverClass, selector);
+    if(crankvm_oop_isNil(_theContext, methodOop))
+    {
+        printf("TODO: Send doesNotUnderstand:\n");
+        UNIMPLEMENTED();
+    }
+
+    // TODO: Create the context, and invoke the method.
+    if(!crankvm_oop_isCompiledCode(methodOop))
+    {
+        printf("TODO: Send to non-compiled method\n");
+        UNIMPLEMENTED();
+    }
+
+    return crankvm_interpreter_activateMethodWithArguments(self, expectedArgumentCount, methodOop);
 }
 
 static crankvm_error_t
@@ -706,7 +764,7 @@ crankvm_interpreter_run(crankvm_interpreter_state_t *self)
 
         printf("Bytecode: %02X\n", self->currentBytecode);
 
-        switch(self->currentBytecode)
+        switch(self->currentBytecode + self->currentBytecodeSetOffset)
         {
 #define BYTECODE_DISPATCH_NAME_ARGS(name, ...) error = crankvm_interpreter_bytecode ## name (self, __VA_ARGS__)
 #define BYTECODE_DISPATCH_NAME(name) error = crankvm_interpreter_bytecode ## name (self)
@@ -741,7 +799,6 @@ crankvm_interpret(crankvm_context_t *context, crankvm_MethodContext_t *methodCon
     crankvm_interpreter_state_t state;
     memset(&state, 0, sizeof(state));
     state.objects.methodContext = methodContext;
-    state.objects.receiver = crankvm_specialObject_nil(context);
     state.context = context;
     state.callerReturnValuePointer = callerReturnValuePointer;
 

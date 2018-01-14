@@ -54,24 +54,18 @@ crankvm_context_getSpecialObjectsArray(crankvm_context_t *context)
 {
     if(!context)
         return NULL;
-    return context->specialObjectsArray;
-}
-
-LIB_CRANK_VM_EXPORT int
-crankvm_context_isNil(crankvm_context_t *context, void *pointer)
-{
-    return !context || !context->specialObjectsArray || ((crankvm_oop_t)pointer == context->specialObjectsArray->nilObject);
+    return context->roots.specialObjectsArray;
 }
 
 static crankvm_ProcessorScheduler_t *
 crankvm_context_getScheduler(crankvm_context_t *context)
 {
-    if(!context->specialObjectsArray ||
-        crankvm_context_isNil(context, context->specialObjectsArray->schedulerAssociation) ||
-        crankvm_oop_isNil(context, context->specialObjectsArray->schedulerAssociation->value))
+    if(!context->roots.specialObjectsArray ||
+        crankvm_object_isNil(context, context->roots.specialObjectsArray->schedulerAssociation) ||
+        crankvm_oop_isNil(context, context->roots.specialObjectsArray->schedulerAssociation->value))
         return NULL;
 
-    return (crankvm_ProcessorScheduler_t*)context->specialObjectsArray->schedulerAssociation->value;
+    return (crankvm_ProcessorScheduler_t*)context->roots.specialObjectsArray->schedulerAssociation->value;
 }
 
 static crankvm_Process_t *
@@ -87,14 +81,14 @@ crankvm_context_getActiveProcess(crankvm_context_t *context)
 static crankvm_MethodContext_t *
 crankvm_context_getEntryMethodContext(crankvm_context_t *context)
 {
-    if(!context->specialObjectsArray ||
-        crankvm_object_header_getSlotCount((crankvm_object_header_t *)context->specialObjectsArray) < 63 ||
-        crankvm_context_isNil(context, context->specialObjectsArray->crankVMEntryContext) ||
-        crankvm_oop_isNil(context, context->specialObjectsArray->crankVMEntryContext->value))
+    if(!context->roots.specialObjectsArray ||
+        crankvm_object_header_getSlotCount((crankvm_object_header_t *)context->roots.specialObjectsArray) < 63 ||
+        crankvm_object_isNil(context, context->roots.specialObjectsArray->crankVMEntryContext) ||
+        crankvm_oop_isNil(context, context->roots.specialObjectsArray->crankVMEntryContext->value))
         return NULL;
 
-    printf("entry point key: '%.*s'\n", crankvm_string_printf_arg(context->specialObjectsArray->crankVMEntryContext->key));
-    return (crankvm_MethodContext_t *)context->specialObjectsArray->crankVMEntryContext->value;
+    printf("entry point key: '%.*s'\n", crankvm_string_printf_arg(context->roots.specialObjectsArray->crankVMEntryContext->key));
+    return (crankvm_MethodContext_t *)context->roots.specialObjectsArray->crankVMEntryContext->value;
 }
 
 LIB_CRANK_VM_EXPORT crankvm_error_t
@@ -107,7 +101,7 @@ crankvm_context_run(crankvm_context_t *context)
         if(!process || crankvm_oop_isNil(context, process->suspendedContext))
             return CRANK_VM_ERROR_UNSUPPORTED_OPERATION;
 
-        printf("Processor name: '%.*s'\n", crankvm_string_printf_arg(context->specialObjectsArray->schedulerAssociation->key));
+        printf("Processor name: '%.*s'\n", crankvm_string_printf_arg(context->roots.specialObjectsArray->schedulerAssociation->key));
         printf("Active process %p name '%.*s' suspended context %p\n", process, crankvm_string_printf_arg(process->name), (void*)process->suspendedContext);
         methodContext = (crankvm_MethodContext_t *)process->suspendedContext;
     }

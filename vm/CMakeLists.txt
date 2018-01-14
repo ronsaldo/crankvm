@@ -7,6 +7,8 @@ set(CrankVM_SOURCES
     image.h
     interpreter.c
     object-model.c
+    read-memory-stream.h
+    special-objects.c
 )
 
 add_definitions(

@@ -193,6 +193,8 @@ crankvm_context_loadImageFromMemory(crankvm_context_t *context, size_t imageSize
     if(error)
         return error;
 
+    context->lastIdentityHash = header.lastHash;
+
     return crankvm_heap_loadImageContent(context, &stream, &header);
 }
 
