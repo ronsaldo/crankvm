@@ -60,6 +60,46 @@ crankvm_interpreter_stackOopAt(crankvm_interpreter_state_t *self, intptr_t size)
     assert(self->stackPointer > size);
     return self->objects.methodContext->stackSlots[self->stackPointer - size - 1];
 }
+
+LIB_CRANK_VM_EXPORT inline crankvm_error_t
+crankvm_interpreter_checkReceiverSlotIndex(crankvm_interpreter_state_t *self, size_t index)
+{
+    if(!crankvm_oop_isPointer(self->objects.receiver) ||
+        index >= crankvm_object_header_getSlotCount((crankvm_object_header_t*)self->objects.receiver))
+        return CRANK_VM_ERROR_OUT_OF_BOUNDS;
+
+    return CRANK_VM_OK;
+}
+
+LIB_CRANK_VM_EXPORT inline crankvm_oop_t*
+crankvm_interpreter_getReceiverSlots(crankvm_interpreter_state_t *self)
+{
+    assert(crankvm_oop_isPointer(self->objects.receiver));
+    return (crankvm_oop_t*) (self->objects.receiver + sizeof(crankvm_object_header_t));
+}
+
+LIB_CRANK_VM_EXPORT inline crankvm_oop_t
+crankvm_interpreter_getReceiverSlot(crankvm_interpreter_state_t *self, size_t index)
+{
+    assert(crankvm_interpreter_checkReceiverSlotIndex(self, index));
+
+    return crankvm_interpreter_getReceiverSlots(self)[index];
+}
+
+LIB_CRANK_VM_EXPORT inline crankvm_error_t
+crankvm_interpreter_checkTemporaryIndex(crankvm_interpreter_state_t *self, size_t index)
+{
+    if(index >= self->stackPointer)
+        return CRANK_VM_ERROR_OUT_OF_BOUNDS;
+    return CRANK_VM_OK;
+}
+
+LIB_CRANK_VM_EXPORT inline crankvm_oop_t
+crankvm_interpreter_getTemporary(crankvm_interpreter_state_t *self, size_t index)
+{
+    assert(crankvm_interpreter_checkTemporaryIndex(self, index));
+    return self->objects.methodContext->stackSlots[index];
+}
 // </editor-fold> Interpreter public interface
 
 #define UNIMPLEMENTED() \
@@ -335,30 +375,83 @@ crankvm_interpreter_invokeNumberedPrimitive(crankvm_interpreter_state_t *self, u
     return crankvm_interpreter_invokeNormalPrimitive(self, crankvm_interpreter_getNumberedPrimitive(self, primitiveNumber));
 }
 
+static crankvm_error_t
+crankvm_interpreter_pushReceiverVariable(crankvm_interpreter_state_t *self, unsigned int slotIndex)
+{
+    crankvm_error_t error = crankvm_interpreter_checkReceiverSlotIndex(self, slotIndex);
+    if(error)
+        return error;
+
+    pushOop(crankvm_interpreter_getReceiverSlot(self, slotIndex));
+
+    return CRANK_VM_OK;
+}
+
+static crankvm_error_t
+crankvm_interpreter_pushTemporary(crankvm_interpreter_state_t *self, unsigned int temporaryIndex)
+{
+    crankvm_error_t error = crankvm_interpreter_checkTemporaryIndex(self, temporaryIndex);
+    if(error)
+        return error;
+
+    pushOop(crankvm_interpreter_getTemporary(self, temporaryIndex));
+
+    return CRANK_VM_OK;
+}
+
+static crankvm_error_t
+crankvm_interpreter_pushLiteral(crankvm_interpreter_state_t *self, unsigned int literalIndex)
+{
+    if(literalIndex >= self->codeHeader.numberOfLiterals)
+        return CRANK_VM_ERROR_OUT_OF_BOUNDS;
+
+    pushOop(self->objects.method->literals[literalIndex]);
+
+    return CRANK_VM_OK;
+}
+
+static crankvm_error_t
+crankvm_interpreter_pushLiteralVariable(crankvm_interpreter_state_t *self, unsigned int literalIndex)
+{
+    if(literalIndex >= self->codeHeader.numberOfLiterals)
+        return CRANK_VM_ERROR_OUT_OF_BOUNDS;
+
+    crankvm_Association_t *literalVariable = (crankvm_Association_t *)self->objects.method->literals[literalIndex];
+    if(crankvm_object_isNil(_theContext, literalVariable))
+        return CRANK_VM_ERROR_INVALID_PARAMETER;
+
+    pushOop(literalVariable->value);
+    return CRANK_VM_OK;
+}
+
 // <editor-fold> Implementation of the bytecodes
 
 static crankvm_error_t
 crankvm_interpreter_bytecodePushReceiverVariableShort(crankvm_interpreter_state_t *self, int index)
 {
-    UNIMPLEMENTED();
+    fetchNextInstruction();
+    return crankvm_interpreter_pushReceiverVariable(self, index);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodePushTempShort(crankvm_interpreter_state_t *self, int index)
 {
-    UNIMPLEMENTED();
+    fetchNextInstruction();
+    return crankvm_interpreter_pushTemporary(self, index);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodePushLiteralShort(crankvm_interpreter_state_t *self, int index)
 {
-    UNIMPLEMENTED();
+    fetchNextInstruction();
+    return crankvm_interpreter_pushLiteral(self, index);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodePushLiteralVariableShort(crankvm_interpreter_state_t *self, int index)
 {
-    UNIMPLEMENTED();
+    fetchNextInstruction();
+    return crankvm_interpreter_pushLiteralVariable(self, index);
 }
 
 static crankvm_error_t

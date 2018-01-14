@@ -122,4 +122,10 @@ LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_interpreter_checkSizeToPop(crankvm_i
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_popOop(crankvm_interpreter_state_t *self);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_stackOopAt(crankvm_interpreter_state_t *self, intptr_t size);
 
+LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_interpreter_checkReceiverSlotIndex(crankvm_interpreter_state_t *self, size_t index);
+LIB_CRANK_VM_EXPORT crankvm_oop_t *crankvm_interpreter_getReceiverSlots(crankvm_interpreter_state_t *self);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_getReceiverSlot(crankvm_interpreter_state_t *self, size_t index);
+LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_interpreter_checkTemporaryIndex(crankvm_interpreter_state_t *self, size_t index);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_getTemporary(crankvm_interpreter_state_t *self, size_t index);
+
 #endif //CRANK_VM_INTERPRETER_H

@@ -111,7 +111,7 @@ LIB_CRANK_VM_EXPORT crankvm_oop_t
 crankvm_object_forInteger(crankvm_context_t *context, intptr_t integer)
 {
     if(crankvm_oop_isIntegerInSmallIntegerRange(integer))
-        return integer;
+        return crankvm_oop_encodeSmallInteger(integer);
 
     printf("TODO: Make large integer in crankvm_object_forInteger\n");
     abort();

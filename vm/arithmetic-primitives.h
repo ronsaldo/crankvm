@@ -5,5 +5,21 @@
 
 void crankvm_primitive_integerAdd(crankvm_primitive_context_t *context);
 void crankvm_primitive_integerSubtract(crankvm_primitive_context_t *context);
+void crankvm_primitive_integerMultiply(crankvm_primitive_context_t *context);
+void crankvm_primitive_integerDivide(crankvm_primitive_context_t *context);
+void crankvm_primitive_integerMod(crankvm_primitive_context_t *context);
+void crankvm_primitive_integerDiv(crankvm_primitive_context_t *context);
+void crankvm_primitive_integerQuo(crankvm_primitive_context_t *context);
+void crankvm_primitive_integerBitAnd(crankvm_primitive_context_t *context);
+void crankvm_primitive_integerBitOr(crankvm_primitive_context_t *context);
+void crankvm_primitive_integerBitXor(crankvm_primitive_context_t *context);
+void crankvm_primitive_integerBitShift(crankvm_primitive_context_t *context);
+
+void crankvm_primitive_integerLessThan(crankvm_primitive_context_t *context);
+void crankvm_primitive_integerGreaterThan(crankvm_primitive_context_t *context);
+void crankvm_primitive_integerLessOrEqual(crankvm_primitive_context_t *context);
+void crankvm_primitive_integerGreaterOrEqual(crankvm_primitive_context_t *context);
+void crankvm_primitive_integerEqual(crankvm_primitive_context_t *context);
+void crankvm_primitive_integerNotEqual(crankvm_primitive_context_t *context);
 
 #endif //CRANK_VM_ARITHMETIC_PRIMITIVES_H
