@@ -28,6 +28,8 @@ enum crankvm_oop_tag_e
     CRANK_VM_OOP_TAG_SMALL_FLOAT_MASK = 0,
     CRANK_VM_OOP_TAG_SMALL_FLOAT_VALUE = 42, // Anything but zero
     CRANK_VM_OOP_TAG_SMALL_FLOAT_SHIFT = 0,
+
+    CRANK_VM_OOP_BITS = 32
 };
 
 #else
@@ -51,6 +53,8 @@ enum crankvm_oop_tag_e
     CRANK_VM_OOP_TAG_SMALL_FLOAT_MASK = 7,
     CRANK_VM_OOP_TAG_SMALL_FLOAT_VALUE = 4,
     CRANK_VM_OOP_TAG_SMALL_FLOAT_SHIFT = 3,
+
+    CRANK_VM_OOP_BITS = 64,
 };
 #endif
 
@@ -60,6 +64,10 @@ enum crankvm_oop_tag_e
 #define CRANK_VM_SMALL_FLOAT_EXPONENT_OFFSET (/* 1023 - 127 */ 896)
 #define CRANK_VM_SMALL_FLOAT_EXPONENT_MIN (/* 1023 - 127 */ SmallFloatExponentOffset)
 #define CRANK_VM_SMALL_FLOAT_EXPONENT_MAX (/* 1023 - 127 */ 1151)
+
+#define CRANK_VM_SMALL_INTEGER_USABLE_BITS (CRANK_VM_OOP_BITS - CRANK_VM_OOP_TAG_SMALL_INTEGER_SHIFT)
+#define CRANK_VM_SMALL_INTEGER_MIN_VALUE (-( ((intptr_t)1)<<(CRANK_VM_SMALL_INTEGER_USABLE_BITS - 1) ) )
+#define CRANK_VM_SMALL_INTEGER_MAX_VALUE (+( ((intptr_t)1)<<(CRANK_VM_SMALL_INTEGER_USABLE_BITS - 1) ) - 1)
 
 static inline int
 crankvm_oop_isPointer(crankvm_oop_t oop)
@@ -71,6 +79,26 @@ static inline int
 crankvm_oop_isSmallInteger(crankvm_oop_t oop)
 {
     return (oop & CRANK_VM_OOP_TAG_SMALL_INTEGER_MASK) == CRANK_VM_OOP_TAG_SMALL_INTEGER_VALUE;
+}
+
+static inline int
+crankvm_oop_isIntegerInSmallIntegerRange(intptr_t integer)
+{
+    return CRANK_VM_SMALL_INTEGER_MIN_VALUE <= integer && integer <= CRANK_VM_SMALL_INTEGER_MAX_VALUE;
+}
+
+static inline intptr_t
+crankvm_oop_decodeSmallInteger(crankvm_soop_t oop)
+{
+    crankvm_assertAlways(crankvm_oop_isSmallInteger(oop));
+    return oop >> CRANK_VM_OOP_TAG_SMALL_INTEGER_SHIFT;
+}
+
+static inline crankvm_oop_t
+crankvm_oop_encodeSmallInteger(intptr_t integer)
+{
+    crankvm_assertAlways(crankvm_oop_isIntegerInSmallIntegerRange(integer));
+    return (integer << CRANK_VM_OOP_TAG_SMALL_INTEGER_SHIFT) | CRANK_VM_OOP_TAG_SMALL_INTEGER_VALUE;
 }
 
 static inline int
@@ -96,20 +124,6 @@ static inline int
 crankvm_oop_isSmallFloat(crankvm_oop_t oop)
 {
     return (oop & CRANK_VM_OOP_TAG_SMALL_FLOAT_MASK) == CRANK_VM_OOP_TAG_SMALL_FLOAT_VALUE;
-}
-
-static inline intptr_t
-crankvm_oop_decodeSmallInteger(crankvm_soop_t oop)
-{
-    crankvm_assertAlways(crankvm_oop_isSmallInteger(oop));
-    return oop >> CRANK_VM_OOP_TAG_SMALL_INTEGER_SHIFT;
-}
-
-static inline crankvm_oop_t
-crankvm_oop_encodeSmallInteger(intptr_t integer)
-{
-    // TODO: Check the integer range
-    return (integer << CRANK_VM_OOP_TAG_SMALL_INTEGER_SHIFT) | CRANK_VM_OOP_TAG_SMALL_INTEGER_VALUE;
 }
 
 typedef enum crankvm_object_format_e
@@ -434,5 +448,7 @@ typedef struct crankvm_context_s crankvm_context_t;
 
 LIB_CRANK_VM_EXPORT uintptr_t crankvm_object_getIdentityHash(crankvm_context_t *context, crankvm_oop_t object);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_getClass(crankvm_context_t *context, crankvm_oop_t object);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forInteger(crankvm_context_t *context, intptr_t integer);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forBoolean(crankvm_context_t *context, int boolean);
 
 #endif //_CRANK_VM_OBJECT_MODEL_H_

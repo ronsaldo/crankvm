@@ -106,3 +106,19 @@ crankvm_object_getClass(crankvm_context_t *context, crankvm_oop_t object)
     uint32_t pageElementIndex = classIndex & CRANK_VM_CLASS_TABLE_PAGE_MASK;
     return page->classes[pageElementIndex];
 }
+
+LIB_CRANK_VM_EXPORT crankvm_oop_t
+crankvm_object_forInteger(crankvm_context_t *context, intptr_t integer)
+{
+    if(crankvm_oop_isIntegerInSmallIntegerRange(integer))
+        return integer;
+
+    printf("TODO: Make large integer in crankvm_object_forInteger\n");
+    abort();
+}
+
+LIB_CRANK_VM_EXPORT crankvm_oop_t
+crankvm_object_forBoolean(crankvm_context_t *context, int boolean)
+{
+    return boolean ? crankvm_specialObject_true(context) : crankvm_specialObject_true(false);
+}

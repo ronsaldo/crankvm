@@ -310,6 +310,69 @@ typedef struct crankvm_special_selectors_s
 
 } crankvm_special_selectors_t;
 
+typedef enum crankvm_primitive_error_code_e
+{
+    CRANK_VM_PRIMITIVE_SUCCESS = 0,
+
+    CRANK_VM_PRIMITIVE_ERROR,
+    CRANK_VM_PRIMITIVE_ERROR_BAD_RECEIVER,
+    CRANK_VM_PRIMITIVE_ERROR_BAD_ARGUMENT,
+    CRANK_VM_PRIMITIVE_ERROR_BAD_INDEX,
+    CRANK_VM_PRIMITIVE_ERROR_BAD_NUMBER_OF_ARGUMENTS,
+    CRANK_VM_PRIMITIVE_ERROR_INAPPROPIATE_OPERATION,
+    CRANK_VM_PRIMITIVE_ERROR_UNSUPPORTED_OPERATION,
+    CRANK_VM_PRIMITIVE_ERROR_NO_MODIFICATION,
+    CRANK_VM_PRIMITIVE_ERROR_INSUFFICIENT_OBJECT_MEMORY,
+    CRANK_VM_PRIMITIVE_ERROR_INSUFFICIENT_C_MEMORY,
+    CRANK_VM_PRIMITIVE_ERROR_NOT_FOUND,
+    CRANK_VM_PRIMITIVE_ERROR_BAD_METHOD,
+    CRANK_VM_PRIMITIVE_ERROR_INTERNAL_ERROR_IN_NAMED_PRIMITIVE_MACHINERY,
+    CRANK_VM_PRIMITIVE_ERROR_OBJECT_MAY_MOVE,
+    CRANK_VM_PRIMITIVE_ERROR_RESOURCE_LIMIT_EXCEEDED,
+    CRANK_VM_PRIMITIVE_ERROR_OBJECT_IS_PINNED,
+    CRANK_VM_PRIMITIVE_ERROR_WRITE_BEYOND_END_OF_OBJECT,
+    CRANK_VM_PRIMITIVE_ERROR_OBJECT_MOVED,
+    CRANK_VM_PRIMITIVE_ERROR_OBJECT_NOT_PINNED,
+    CRANK_VM_PRIMITIVE_ERROR_CALLBACK_ERROR,
+
+    CRANK_VM_PRIMITIVE_ERROR_LAST_KNOWN,
+} crankvm_primitive_error_code_t;
+
+typedef struct crankvm_primitive_error_table_s
+{
+    crankvm_Object_t baseClass;
+
+    union
+    {
+        struct
+        {
+            crankvm_oop_t error;
+            crankvm_oop_t badReceiver;
+            crankvm_oop_t badArgument;
+            crankvm_oop_t badIndex;
+            crankvm_oop_t badNumberOfArgumnets;
+            crankvm_oop_t inappropiateOperation;
+            crankvm_oop_t unsupportedOperation;
+            crankvm_oop_t noModification;
+            crankvm_oop_t insufficientObjectMemory;
+            crankvm_oop_t insufficientCMemory;
+            crankvm_oop_t notFound;
+            crankvm_oop_t badMethod;
+            crankvm_oop_t internalErrorInNamedPrimitiveMachinery;
+            crankvm_oop_t objectMayMove;
+            crankvm_oop_t resourceLimitExceeded;
+            crankvm_oop_t objectIsPinned;
+            crankvm_oop_t primitiveWriteBeyondEndOfObject;
+            crankvm_oop_t objectMoved;
+            crankvm_oop_t objectNotPinned;
+            crankvm_oop_t callbackError;
+        };
+
+        crankvm_oop_t errorNameArray[CRANK_VM_PRIMITIVE_ERROR_LAST_KNOWN];
+    };
+
+} primitive_error_table_t;
+
 typedef struct crankvm_special_object_array_s
 {
     crankvm_object_header_t objectHeader;
@@ -378,7 +441,7 @@ typedef struct crankvm_special_object_array_s
 	crankvm_oop_t selectorRunWithIn; //49.
 
 	crankvm_oop_t selectorAttemptToAssign; //50.
-	crankvm_oop_t old_PrimErrTableIndex; //51. in VMClass class>>initializePrimitiveErrorCodes"
+	primitive_error_table_t *primitiveErrorTable; //51. in VMClass class>>initializePrimitiveErrorCodes"
 	crankvm_Behavior_t *classAlien; //52.
 	crankvm_oop_t selectorInvokeCallback; //53.
 	crankvm_Behavior_t *classUnsafeAlien; //54.

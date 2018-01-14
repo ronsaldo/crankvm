@@ -21,6 +21,7 @@ LIB_CRANK_VM_EXPORT const char *crankvm_error_getString(crankvm_error_t error)
     case CRANK_VM_ERROR_STACK_UNDERFLOW: return "Stack underfow.";
     case CRANK_VM_ERROR_RECEIVER_CLASS_NIL: return "Receiver class nil.";
     case CRANK_VM_ERROR_CALLED_METHOD_ARGUMENT_MISMATCH: return "Called method argument count mismatch.";
+    case CRANK_VM_ERROR_ILLEGAL_INSTRUCTION: return "Illegal instruction.";
     default: return "Unknown error code.";
     }
 }

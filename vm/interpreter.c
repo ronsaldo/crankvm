@@ -1,36 +1,66 @@
-#include "crank-vm/crank-vm.h"
-#include "context-internal.h"
-#include "heap.h"
-#include <string.h>
-#include <assert.h>
+#include "interpreter-internal.h"
+#include "numbered-primitives.h"
 
-typedef struct crankvm_interpreter_state_s
+// <editor-fold> Interpreter public interface
+LIB_CRANK_VM_EXPORT inline crankvm_context_t*
+crankvm_interpreter_getContext(crankvm_interpreter_state_t *self)
 {
-    crankvm_context_t *context;
-    crankvm_oop_t *callerReturnValuePointer;
+    return self->context;
+}
 
-    crankvm_compiled_code_header_t codeHeader;
+LIB_CRANK_VM_EXPORT inline crankvm_MethodContext_t*
+crankvm_interpreter_getMethodContext(crankvm_interpreter_state_t *self)
+{
+    return self->objects.methodContext;
+}
 
-    intptr_t stackPointer;
-    intptr_t stackLimit;
-    uint8_t *instructions;
+LIB_CRANK_VM_EXPORT inline crankvm_CompiledCode_t*
+crankvm_interpreter_getCompiledCode(crankvm_interpreter_state_t *self)
+{
+    return self->objects.method;
+}
 
-    intptr_t pc;
-    int currentBytecode;
-    int currentBytecodeSetOffset;
+LIB_CRANK_VM_EXPORT inline crankvm_oop_t
+crankvm_interpreter_getReceiver(crankvm_interpreter_state_t *self)
+{
+    return self->objects.receiver;
+}
 
-    intptr_t nextPC;
-    int nextBytecode;
-    bool returnFromInterpreter;
+LIB_CRANK_VM_EXPORT inline crankvm_error_t
+crankvm_interpreter_pushOop(crankvm_interpreter_state_t *self, crankvm_oop_t oop)
+{
+    if(self->stackPointer >= self->stackLimit)
+        return CRANK_VM_ERROR_STACK_OVERFLOW;
 
-    struct
-    {
-        crankvm_MethodContext_t *methodContext;
-        crankvm_CompiledCode_t *method;
-        crankvm_oop_t receiver;
-    } objects;
+    self->objects.methodContext->stackSlots[self->stackPointer++] = oop;
+    return CRANK_VM_OK;
+}
 
-} crankvm_interpreter_state_t;
+LIB_CRANK_VM_EXPORT inline crankvm_error_t
+crankvm_interpreter_checkSizeToPop(crankvm_interpreter_state_t *self, intptr_t size)
+{
+    if(self->stackPointer - size < 0)
+        return CRANK_VM_ERROR_STACK_UNDERFLOW;
+
+    return CRANK_VM_OK;
+}
+
+LIB_CRANK_VM_EXPORT inline crankvm_oop_t
+crankvm_interpreter_popOop(crankvm_interpreter_state_t *self)
+{
+    assert(self->stackPointer > 0);
+    crankvm_oop_t result = self->objects.methodContext->stackSlots[--self->stackPointer];
+    self->objects.methodContext->stackSlots[self->stackPointer] = self->context->roots.nilOop;
+    return result;
+}
+
+LIB_CRANK_VM_EXPORT inline crankvm_oop_t
+crankvm_interpreter_stackOopAt(crankvm_interpreter_state_t *self, intptr_t size)
+{
+    assert(self->stackPointer > size);
+    return self->objects.methodContext->stackSlots[self->stackPointer - size - 1];
+}
+// </editor-fold> Interpreter public interface
 
 #define UNIMPLEMENTED() \
 do { \
@@ -58,14 +88,22 @@ do { \
 static inline crankvm_error_t
 crankvm_interpreter_fetchNextInstruction(crankvm_interpreter_state_t *self)
 {
-    self->nextBytecode = self->instructions[self->nextPC];
+    self->nextPC = self->pc;
+    self->nextBytecode = self->instructions[self->nextPC++];
     return CRANK_VM_OK;
+}
+
+static inline uint8_t
+crankvm_interpreter_fetchByte(crankvm_interpreter_state_t *self)
+{
+    return self->instructions[self->pc++];
 }
 
 static inline crankvm_error_t
 crankvm_interpreter_fetchMethodContext(crankvm_interpreter_state_t *self)
 {
     // Validate the context
+    printf("crankvm_interpreter_fetchMethodContext %p\n", self->objects.methodContext);
     crankvm_error_t error = crankvm_MethodContext_validate(self->context, self->objects.methodContext);
     if(error)
         return error;
@@ -79,12 +117,13 @@ crankvm_interpreter_fetchMethodContext(crankvm_interpreter_state_t *self)
     if(error)
         return error;
 
-    self->nextPC = crankvm_oop_decodeSmallInteger(self->objects.methodContext->baseClass.pc);
-    self->stackPointer = crankvm_oop_decodeSmallInteger(self->objects.methodContext->stackp);
-    self->stackLimit = crankvm_object_header_getSlotCount((crankvm_object_header_t *)self->objects.methodContext);
-    if(self->nextPC <= 0 || self->stackPointer > self->stackLimit)
+    crankvm_MethodContext_t *methodContext = self->objects.methodContext;
+    self->pc = crankvm_oop_decodeSmallInteger(methodContext->baseClass.pc);
+    self->stackPointer = crankvm_oop_decodeSmallInteger(methodContext->stackp);
+    self->stackLimit = crankvm_object_header_getSlotCount((crankvm_object_header_t *)methodContext);
+    if(self->pc <= 0 || self->stackPointer > self->stackLimit)
         return CRANK_VM_ERROR_INVALID_PARAMETER;
-    --self->nextPC;
+    --self->pc;
 
     // Get the pointer into the instructions.
     crankvm_oop_t methodSelector = crankvm_CompiledCode_getSelector(_theContext, self->objects.method);
@@ -106,46 +145,13 @@ crankvm_interpreter_fetchMethodContext(crankvm_interpreter_state_t *self)
 static inline crankvm_error_t
 crankvm_interpreter_storeMethodContextState(crankvm_interpreter_state_t *self)
 {
-    // Store back the stack pointer and the pc
-    self->objects.methodContext->stackp = crankvm_oop_encodeSmallInteger(self->stackPointer);
-    self->objects.methodContext->baseClass.pc = crankvm_oop_encodeSmallInteger(self->nextPC + 1);
+    crankvm_MethodContext_t *methodContext = self->objects.methodContext;
+
+    // Store back the pc and the stack pointer
+    methodContext->baseClass.pc = crankvm_oop_encodeSmallInteger(self->pc + 1);
+    methodContext->stackp = crankvm_oop_encodeSmallInteger(self->stackPointer);
 
     return CRANK_VM_OK;
-}
-
-static inline crankvm_error_t
-crankvm_interpreter_pushOop(crankvm_interpreter_state_t *self, crankvm_oop_t oop)
-{
-    if(self->stackPointer >= self->stackLimit)
-        return CRANK_VM_ERROR_STACK_OVERFLOW;
-
-    self->objects.methodContext->stackSlots[self->stackPointer++] = oop;
-    return CRANK_VM_OK;
-}
-
-static inline crankvm_error_t
-crankvm_interpreter_checkSizeToPop(crankvm_interpreter_state_t *self, intptr_t size)
-{
-    if(self->stackPointer - size < 0)
-        return CRANK_VM_ERROR_STACK_UNDERFLOW;
-
-    return CRANK_VM_OK;
-}
-
-static inline crankvm_oop_t
-crankvm_interpreter_popOop(crankvm_interpreter_state_t *self)
-{
-    assert(self->stackPointer > 0);
-    crankvm_oop_t result = self->objects.methodContext->stackSlots[--self->stackPointer];
-    self->objects.methodContext->stackSlots[self->stackPointer] = _theContext->roots.nilOop;
-    return result;
-}
-
-static inline crankvm_oop_t
-crankvm_interpreter_stackOopAt(crankvm_interpreter_state_t *self, intptr_t size)
-{
-    assert(self->stackPointer > size);
-    return self->objects.methodContext->stackSlots[self->stackPointer - size - 1];
 }
 
 static crankvm_error_t
@@ -168,7 +174,14 @@ crankvm_interpreter_localMethodReturnOop(crankvm_interpreter_state_t *self, cran
         return CRANK_VM_OK;
     }
 
-    UNIMPLEMENTED();
+    // Activate the return context.
+    printf("Returning into context: %p\n", returnContext);
+    self->objects.methodContext = returnContext;
+    crankvm_interpreter_fetchMethodContext(self);
+
+    // Push the return value.
+    pushOop(returnValue);
+    return CRANK_VM_OK;
 }
 
 static crankvm_error_t
@@ -209,7 +222,7 @@ crankvm_interpreter_activateMethodWithArguments(crankvm_interpreter_state_t *sel
     crankvm_MethodContext_t *newContext = crankvm_MethodContext_create(_theContext, calledHeader.largeFrameRequired);
 
     // Set the sender context.
-    newContext->baseClass.sender = (crankvm_oop_t)_theContext;
+    newContext->baseClass.sender = (crankvm_oop_t)self->objects.methodContext;
     newContext->baseClass.pc = crankvm_oop_encodeSmallInteger(initialPC);
     newContext->method = methodOop;
 
@@ -220,6 +233,9 @@ crankvm_interpreter_activateMethodWithArguments(crankvm_interpreter_state_t *sel
     // Pop the receiver into the new context.
     newContext->receiver = popOop();
     newContext->stackp = crankvm_oop_encodeSmallInteger(expectedArgumentCount + calledHeader.numberOfTemporaries);
+
+    // Store the current method context
+    crankvm_interpreter_storeMethodContextState(self);
 
     // Change into the new context.
     self->objects.methodContext = newContext;
@@ -262,6 +278,61 @@ static crankvm_error_t
 crankvm_interpreter_sendToSpecialSelector(crankvm_interpreter_state_t *self, int expectedArgumentCount, crankvm_special_selector_with_arg_count_t specialSelector)
 {
     return crankvm_interpreter_sendTo(self, expectedArgumentCount, specialSelector.selector);
+}
+
+/// I am used for a primitive whose invocation context is inlined. (i.e. I do not create a new activation context for the primitive)
+/*static crankvm_error_t
+crankvm_interpreter_invokeNormalInlinedPrimitive(crankvm_interpreter_state_t *self, crankvm_primitive_function_t primitiveFunction)
+{
+    UNIMPLEMENTED();
+}*/
+
+static crankvm_error_t
+crankvm_interpreter_invokeNormalPrimitive(crankvm_interpreter_state_t *self, crankvm_primitive_function_t primitiveFunction)
+{
+    // Create the primitive context
+    crankvm_primitive_context_t primitiveContext = {
+        .context = _theContext,
+        .interpreter = self,
+        .error = CRANK_VM_PRIMITIVE_SUCCESS,
+        .argumentCount = self->codeHeader.numberOfArguments,
+        .roots = {
+            .arguments = &self->objects.methodContext->stackSlots[0],
+            .receiver = self->objects.receiver,
+            .result = _theContext->roots.nilOop
+        },
+    };
+
+    // Call the primitive
+    primitiveFunction(&primitiveContext);
+
+    // Did we fail?
+    if(primitiveContext.error)
+    {
+        printf("Handle normal primitive failure case: %d\n", primitiveContext.error);
+        UNIMPLEMENTED();
+    }
+
+    // Handle the success case
+    return crankvm_interpreter_localMethodReturnOop(self, primitiveContext.roots.result);
+}
+
+static crankvm_primitive_function_t
+crankvm_interpreter_getNumberedPrimitive(crankvm_interpreter_state_t *self, unsigned int primitiveNumber)
+{
+    if(primitiveNumber >= crankvm_numberedPrimitiveTableSize)
+        return crankvm_primitive_primitiveFail;
+
+    crankvm_primitive_function_t result = crankvm_numberedPrimitiveTable[primitiveNumber];
+    if(result)
+        return result;
+    return crankvm_primitive_primitiveFail;
+}
+
+static crankvm_error_t
+crankvm_interpreter_invokeNumberedPrimitive(crankvm_interpreter_state_t *self, unsigned int primitiveNumber)
+{
+    return crankvm_interpreter_invokeNormalPrimitive(self, crankvm_interpreter_getNumberedPrimitive(self, primitiveNumber));
 }
 
 // <editor-fold> Implementation of the bytecodes
@@ -473,7 +544,17 @@ crankvm_interpreter_bytecodePushOrPopNewArray(crankvm_interpreter_state_t *self)
 static crankvm_error_t
 crankvm_interpreter_bytecodeCallPrimitive(crankvm_interpreter_state_t *self)
 {
-    UNIMPLEMENTED();
+    unsigned int primitiveNumber = crankvm_interpreter_fetchByte(self) + (crankvm_interpreter_fetchByte(self)<<8);
+    fetchNextInstruction();
+
+    // Is this an inline primitive?
+    if(primitiveNumber & 0x8000)
+    {
+        printf("TODO: Invoke inline primitive: %d\n", primitiveNumber);
+        return CRANK_VM_ERROR_ILLEGAL_INSTRUCTION;
+    }
+
+    return crankvm_interpreter_invokeNumberedPrimitive(self, primitiveNumber);
 }
 
 static crankvm_error_t
@@ -626,7 +707,6 @@ crankvm_interpreter_bytecodeArithmeticMessageBitOr(crankvm_interpreter_state_t *
     return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->bitOr);
 }
 
-
 static crankvm_error_t
 crankvm_interpreter_bytecodeSpecialMessageAt(crankvm_interpreter_state_t *self)
 {
@@ -759,8 +839,7 @@ crankvm_interpreter_run(crankvm_interpreter_state_t *self)
     while(!self->returnFromInterpreter)
     {
         self->currentBytecode = self->nextBytecode;
-        self->pc = self->nextPC++;
-        crankvm_interpreter_fetchNextInstruction(self);
+        self->pc = self->nextPC;
 
         printf("Bytecode: %02X\n", self->currentBytecode);
 

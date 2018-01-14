@@ -1,4 +1,5 @@
 set(CrankVM_SOURCES
+    arithmetic-primitives.c
     context.c
     error.c
     heap.c
@@ -6,9 +7,13 @@ set(CrankVM_SOURCES
     image.c
     image.h
     interpreter.c
+    numbered-primitives.h
+    numbered-primitives.c
     object-model.c
     read-memory-stream.h
     special-objects.c
+    system-primitives.c
+    system-primitives.h
 )
 
 add_definitions(
