@@ -125,7 +125,13 @@ LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_stackOopAt(crankvm_interpr
 LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_interpreter_checkReceiverSlotIndex(crankvm_interpreter_state_t *self, size_t index);
 LIB_CRANK_VM_EXPORT crankvm_oop_t *crankvm_interpreter_getReceiverSlots(crankvm_interpreter_state_t *self);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_getReceiverSlot(crankvm_interpreter_state_t *self, size_t index);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_setReceiverSlot(crankvm_interpreter_state_t *self, size_t index, crankvm_oop_t value);
+
 LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_interpreter_checkTemporaryIndex(crankvm_interpreter_state_t *self, size_t index);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_getTemporary(crankvm_interpreter_state_t *self, size_t index);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_setTemporary(crankvm_interpreter_state_t *self, size_t index, crankvm_oop_t value);
+
+LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_interpreter_checkLiteralIndex(crankvm_interpreter_state_t *self, size_t index);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_getLiteral(crankvm_interpreter_state_t *self, size_t index);
 
 #endif //CRANK_VM_INTERPRETER_H

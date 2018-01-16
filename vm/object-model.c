@@ -120,5 +120,5 @@ crankvm_object_forInteger(crankvm_context_t *context, intptr_t integer)
 LIB_CRANK_VM_EXPORT crankvm_oop_t
 crankvm_object_forBoolean(crankvm_context_t *context, int boolean)
 {
-    return boolean ? crankvm_specialObject_true(context) : crankvm_specialObject_true(false);
+    return boolean ? crankvm_specialObject_true(context) : crankvm_specialObject_false(context);
 }

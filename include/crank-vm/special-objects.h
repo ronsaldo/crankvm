@@ -335,7 +335,7 @@ typedef enum crankvm_primitive_error_code_e
     CRANK_VM_PRIMITIVE_ERROR_OBJECT_NOT_PINNED,
     CRANK_VM_PRIMITIVE_ERROR_CALLBACK_ERROR,
 
-    CRANK_VM_PRIMITIVE_ERROR_LAST_KNOWN,
+    CRANK_VM_PRIMITIVE_ERROR_KNOWN_COUNT,
 } crankvm_primitive_error_code_t;
 
 typedef struct crankvm_primitive_error_table_s
@@ -368,7 +368,7 @@ typedef struct crankvm_primitive_error_table_s
             crankvm_oop_t callbackError;
         };
 
-        crankvm_oop_t errorNameArray[CRANK_VM_PRIMITIVE_ERROR_LAST_KNOWN];
+        crankvm_oop_t errorNameArray[CRANK_VM_PRIMITIVE_ERROR_KNOWN_COUNT];
     };
 
 } primitive_error_table_t;
