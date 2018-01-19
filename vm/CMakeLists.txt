@@ -10,6 +10,8 @@ set(CrankVM_SOURCES
     numbered-primitives.h
     numbered-primitives.c
     object-model.c
+    object-primitives.c
+    object-primitives.h
     read-memory-stream.h
     special-objects.c
     system-primitives.c

@@ -3,6 +3,7 @@
 
 #include "arithmetic-primitives.h"
 #include "system-primitives.h"
+#include "object-primitives.h"
 
 extern const size_t crankvm_numberedPrimitiveTableSize;
 extern const crankvm_primitive_function_t crankvm_numberedPrimitiveTable[];

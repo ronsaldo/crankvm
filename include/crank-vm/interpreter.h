@@ -41,7 +41,8 @@ crankvm_primitive_successWithResult(crankvm_primitive_context_t *primitiveContex
 static inline void
 crankvm_primitive_failWithCode(crankvm_primitive_context_t *primitiveContext, crankvm_primitive_error_code_t code)
 {
-    primitiveContext->error = code;
+    if(primitiveContext->error == CRANK_VM_PRIMITIVE_SUCCESS)
+        primitiveContext->error = code;
 }
 
 static inline void
@@ -73,6 +74,22 @@ crankvm_primitive_getReceiver(crankvm_primitive_context_t *primitiveContext)
     return primitiveContext->roots.receiver;
 }
 
+static inline crankvm_oop_t
+crankvm_primitive_getStackAt(crankvm_primitive_context_t *primitiveContext, size_t index)
+{
+    if(index > primitiveContext->argumentCount)
+    {
+        crankvm_primitive_failWithCode(primitiveContext, CRANK_VM_PRIMITIVE_ERROR_BAD_NUMBER_OF_ARGUMENTS);
+        return 0;
+    }
+    else if(index == primitiveContext->argumentCount)
+    {
+        return primitiveContext->roots.receiver;
+    }
+
+    return primitiveContext->roots.arguments[primitiveContext->argumentCount - index - 1];
+}
+
 static inline int
 crankvm_primitive_hasFailed(crankvm_primitive_context_t *primitiveContext)
 {
@@ -82,6 +99,9 @@ crankvm_primitive_hasFailed(crankvm_primitive_context_t *primitiveContext)
 static inline intptr_t
 crankvm_primitive_getSmallIntegerValue(crankvm_primitive_context_t *primitiveContext, crankvm_oop_t oop)
 {
+    if(crankvm_primitive_hasFailed(primitiveContext))
+        return 0;
+
     if(!crankvm_oop_isSmallInteger(oop))
     {
         crankvm_primitive_failWithCode(primitiveContext, CRANK_VM_PRIMITIVE_ERROR_BAD_ARGUMENT);
@@ -108,6 +128,12 @@ static inline void
 crankvm_primitive_returnBoolean(crankvm_primitive_context_t *primitiveContext, int boolean)
 {
     return crankvm_primitive_successWithResult(primitiveContext, crankvm_object_forBoolean(primitiveContext->context, boolean));
+}
+
+static inline void
+crankvm_primitive_returnOop(crankvm_primitive_context_t *primitiveContext, crankvm_oop_t result)
+{
+    return crankvm_primitive_successWithResult(primitiveContext, result);
 }
 
 // Interpreter accessors.

@@ -39,6 +39,12 @@ crankvm_CompiledCode_getSelector(crankvm_context_t *context, crankvm_CompiledCod
     return additionalState->selector;
 }
 
+LIB_CRANK_VM_EXPORT size_t
+crankvm_CompiledCode_getFirstPC(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode)
+{
+    return crankvm_CompiledCode_getNumberOfLiterals(context, compiledCode) + sizeof(crankvm_oop_t) + 1;
+}
+
 LIB_CRANK_VM_EXPORT crankvm_error_t
 crankvm_MethodContext_validate(crankvm_context_t *context, crankvm_MethodContext_t *methodContext)
 {

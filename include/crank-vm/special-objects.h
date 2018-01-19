@@ -505,6 +505,7 @@ LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_MethodContext_validate(crankvm_conte
 LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_CompiledCode_validate(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode);
 LIB_CRANK_VM_EXPORT size_t crankvm_CompiledCode_getNumberOfLiterals(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_CompiledCode_getSelector(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode);
+LIB_CRANK_VM_EXPORT size_t crankvm_CompiledCode_getFirstPC(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode);
 
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_MethodDictionary_atOrNil(crankvm_context_t *context, crankvm_MethodDictionary_t *methodDict, crankvm_oop_t key);
 

@@ -76,14 +76,8 @@ crankvm_object_getIdentityHash(crankvm_context_t *context, crankvm_oop_t oop)
 }
 
 LIB_CRANK_VM_EXPORT crankvm_oop_t
-crankvm_object_getClass(crankvm_context_t *context, crankvm_oop_t object)
+crankvm_object_getClassWithPointerIndex(crankvm_context_t *context, uint32_t classIndex, crankvm_oop_t object)
 {
-    crankvm_oop_t tag = object & CRANK_VM_OOP_TAG_MASK;
-    if(tag != 0)
-        return context->roots.firstClassTablePage->classes[tag];
-
-    // This could be a special case.
-    uint32_t classIndex = crankvm_object_header_getClassIndex((crankvm_object_header_t *)object);
     if(classIndex <= CRANKVM_CLASS_INDEX_PUN_LAST)
     {
         if(classIndex == CRANKVM_CLASS_INDEX_PUN_IS_ITSELF_CLASS)
@@ -105,6 +99,36 @@ crankvm_object_getClass(crankvm_context_t *context, crankvm_oop_t object)
     // Fetch the page element
     uint32_t pageElementIndex = classIndex & CRANK_VM_CLASS_TABLE_PAGE_MASK;
     return page->classes[pageElementIndex];
+}
+
+LIB_CRANK_VM_EXPORT crankvm_oop_t
+crankvm_object_getClassWithIndex(crankvm_context_t *context, uint32_t classIndex, crankvm_oop_t object)
+{
+    if(classIndex <= CRANKVM_CLASS_INDEX_PUN_LAST)
+        return context->roots.firstClassTablePage->classes[classIndex];
+    return crankvm_object_getClassWithPointerIndex(context, classIndex,object);
+}
+
+LIB_CRANK_VM_EXPORT crankvm_oop_t
+crankvm_object_getClass(crankvm_context_t *context, crankvm_oop_t object)
+{
+    crankvm_oop_t tag = object & CRANK_VM_OOP_TAG_MASK;
+    if(tag != 0)
+        return context->roots.firstClassTablePage->classes[tag];
+
+    // This could be a special case.
+    uint32_t classIndex = crankvm_object_header_getClassIndex((crankvm_object_header_t *)object);
+    return crankvm_object_getClassWithPointerIndex(context, classIndex, object);
+}
+
+LIB_CRANK_VM_EXPORT int
+crankvm_object_isClass(crankvm_context_t *context, crankvm_oop_t object)
+{
+    if(!crankvm_oop_isPointer(object))
+        return 0;
+
+    uint32_t classIndex = crankvm_object_header_getIdentityHash((crankvm_object_header_t *)object);
+    return crankvm_object_getClassWithPointerIndex(context, classIndex, object) == object;
 }
 
 LIB_CRANK_VM_EXPORT crankvm_oop_t

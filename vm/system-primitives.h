@@ -6,7 +6,4 @@
 void crankvm_primitive_primitiveFail(crankvm_primitive_context_t *primitiveContext);
 void crankvm_primitive_primitiveFailUnexistent(crankvm_primitive_context_t *primitiveContext);
 
-void crankvm_primitive_identityEquals(crankvm_primitive_context_t *primitiveContext);
-void crankvm_primitive_identityNotEquals(crankvm_primitive_context_t *primitiveContext);
-
 #endif //CRANK_VM_SYSTEM_PRIMITIVES_H
