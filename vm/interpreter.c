@@ -4,7 +4,7 @@
 static const char *bytecodeNameTable[] = {
 #define BYTECODE_WITH_IMPLICIT_PARAM(opcode, name, implicitParam) #name " " #implicitParam,
 #define BYTECODE(opcode, name) #name,
-#define UNDEFINED_BYTECODE(opcode) "UndefinedByteCode"
+#define UNDEFINED_BYTECODE(opcode) "UndefinedByteCode",
 
 // SqueakV3Plus closures bytecode set
 #include "SqueakV3PlusClosuresBytecodeSetTable.inc"
@@ -225,14 +225,14 @@ crankvm_interpreter_fetchMethodContext(crankvm_interpreter_state_t *self)
     self->stackLimit = crankvm_object_header_getSlotCount((crankvm_object_header_t *)methodContext);
     if(self->pc <= 0 || self->stackPointer > self->stackLimit)
         return CRANK_VM_ERROR_INVALID_PARAMETER;
-    --self->pc;
 
     // Get the pointer into the instructions.
     crankvm_oop_t methodSelector = crankvm_CompiledCode_getSelector(_theContext, self->objects.method);
     printf("\tmethod: %p [#%.*s]pc: %d stackp: %d\n",
         (void*)self->objects.method,
         crankvm_string_printf_arg(methodSelector),
-        (int)self->nextPC, (int)self->stackPointer);
+        (int)self->pc, (int)self->stackPointer);
+    --self->pc; // Zero based PC.
     self->instructions = (uint8_t*)(self->objects.methodContext->method + sizeof(crankvm_object_header_t));
     self->currentBytecodeSetOffset = self->codeHeader.isAlternateBytecode ? 256 : 0;
 
