@@ -377,9 +377,9 @@ crankvm_interpreter_sendTo(crankvm_interpreter_state_t *self, int expectedArgume
 }
 
 static crankvm_error_t
-crankvm_interpreter_sendToSpecialSelector(crankvm_interpreter_state_t *self, int expectedArgumentCount, crankvm_special_selector_with_arg_count_t specialSelector)
+crankvm_interpreter_sendToSpecialSelector(crankvm_interpreter_state_t *self, crankvm_special_selector_with_arg_count_t specialSelector)
 {
-    return crankvm_interpreter_sendTo(self, expectedArgumentCount, specialSelector.selector);
+    return crankvm_interpreter_sendTo(self, crankvm_oop_decodeSmallInteger(specialSelector.argumentCountOop), specialSelector.selector);
 }
 
 /// I am used for a primitive whose invocation context is inlined. (i.e. I do not create a new activation context for the primitive)
@@ -499,6 +499,7 @@ crankvm_interpreter_pushLiteralVariable(crankvm_interpreter_state_t *self, unsig
     if(crankvm_object_isNil(_theContext, literalVariable))
         return CRANK_VM_ERROR_INVALID_PARAMETER;
 
+    printf("pushLiteralVariable #%.*s\n", crankvm_string_printf_arg(literalVariable->key));
     pushOop(literalVariable->value);
     return CRANK_VM_OK;
 }
@@ -845,193 +846,193 @@ crankvm_interpreter_bytecodeLongJumpIfTrue(crankvm_interpreter_state_t *self, in
 static crankvm_error_t
 crankvm_interpreter_bytecodeArithmeticMessageAdd(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->add);
+    return crankvm_interpreter_sendToSpecialSelector(self,  _theSpecialSelectors->add);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeArithmeticMessageMinus(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->subtract);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->subtract);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeArithmeticMessageLessThan(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->lessThan);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->lessThan);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeArithmeticMessageGreaterThan(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->greaterThan);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->greaterThan);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeArithmeticMessageLessEqual(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->lessOrEqual);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->lessOrEqual);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeArithmeticMessageGreaterEqual(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->greaterOrEqual);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->greaterOrEqual);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeArithmeticMessageEqual(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->equal);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->equal);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeArithmeticMessageNotEqual(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->notEqual);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->notEqual);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeArithmeticMessageMultiply(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->multiply);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->multiply);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeArithmeticMessageDivide(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->divide);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->divide);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeArithmeticMessageRemainder(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->remainder);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->remainder);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeArithmeticMessageMakePoint(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->makePoint);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->makePoint);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeArithmeticMessageBitShift(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->bitShift);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->bitShift);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeArithmeticMessageIntegerDivision(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->integerDivide);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->integerDivide);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeArithmeticMessageBitAnd(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->bitAnd);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->bitAnd);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeArithmeticMessageBitOr(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->bitOr);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->bitOr);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeSpecialMessageAt(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->at);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->at);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeSpecialMessageAtPut(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->atPut);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->atPut);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeSpecialMessageSize(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->size);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->size);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeSpecialMessageNext(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->next);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->next);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeSpecialMessageNextPut(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->nextPut);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->nextPut);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeSpecialMessageAtEnd(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->atEnd);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->atEnd);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeSpecialMessageIdentityEqual(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->identityEquals);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->identityEquals);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeSpecialMessageClass(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->clazz);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->clazz);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeSpecialMessageBlockCopy(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->blockCopy);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->blockCopy);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeSpecialMessageValue(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->value);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->value);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeSpecialMessageValueArg(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->valueWithArg);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->valueWithArg);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeSpecialMessageDo(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->doBlock);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->doBlock);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeSpecialMessageNew(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->newObject);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->newObject);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeSpecialMessageNewArray(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->newObjectWithSize);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->newObjectWithSize);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeSpecialMessageX(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->x);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->x);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeSpecialMessageY(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, 1, _theSpecialSelectors->y);
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->y);
 }
 
 static crankvm_error_t
