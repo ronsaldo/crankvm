@@ -499,7 +499,7 @@ crankvm_interpreter_pushLiteralVariable(crankvm_interpreter_state_t *self, unsig
     if(crankvm_object_isNil(_theContext, literalVariable))
         return CRANK_VM_ERROR_INVALID_PARAMETER;
 
-    printf("pushLiteralVariable #%.*s\n", crankvm_string_printf_arg(literalVariable->key));
+    //printf("pushLiteralVariable #%.*s\n", crankvm_string_printf_arg(literalVariable->key));
     pushOop(literalVariable->value);
     return CRANK_VM_OK;
 }
