@@ -1,6 +1,22 @@
 #include "interpreter-internal.h"
 #include "numbered-primitives.h"
 
+static const char *bytecodeNameTable[] = {
+#define BYTECODE_WITH_IMPLICIT_PARAM(opcode, name, implicitParam) #name " " #implicitParam,
+#define BYTECODE(opcode, name) #name,
+#define UNDEFINED_BYTECODE(opcode) "UndefinedByteCode"
+
+// SqueakV3Plus closures bytecode set
+#include "SqueakV3PlusClosuresBytecodeSetTable.inc"
+
+// SistaV1 set
+#include "SistaV1BytecodeSetTable.inc"
+
+#undef BYTECODE_WITH_IMPLICIT_PARAM
+#undef BYTECODE
+#undef UNDEFINED_BYTECODE
+};
+
 // <editor-fold> Interpreter public interface
 LIB_CRANK_VM_EXPORT inline crankvm_context_t*
 crankvm_interpreter_getContext(crankvm_interpreter_state_t *self)
@@ -1059,25 +1075,35 @@ crankvm_interpreter_run(crankvm_interpreter_state_t *self)
         self->currentBytecode = self->nextBytecode;
         self->pc = self->nextPC;
 
-        printf("Bytecode: %02X\n", self->currentBytecode);
+        printf("Bytecode: [%02X]%s\n", self->currentBytecode, bytecodeNameTable[self->currentBytecode + self->currentBytecodeSetOffset]);
 
         switch(self->currentBytecode + self->currentBytecodeSetOffset)
         {
-#define BYTECODE_DISPATCH_NAME_ARGS(name, ...) error = crankvm_interpreter_bytecode ## name (self, __VA_ARGS__)
-#define BYTECODE_DISPATCH_NAME(name) error = crankvm_interpreter_bytecode ## name (self)
+
+#define BYTECODE_WITH_IMPLICIT_PARAM(opcode, name, implicitParam) \
+    case opcode + BYTECODE_TABLE_OFFSET: \
+        error = crankvm_interpreter_bytecode ## name (self, implicitParam);\
+        break;
+#define BYTECODE(opcode, name) \
+    case opcode + BYTECODE_TABLE_OFFSET: \
+        error = crankvm_interpreter_bytecode ## name (self);\
+        break;
+#define UNDEFINED_BYTECODE(opcode) // Caught by the default case.
+
 
 // SqueakV3Plus closures bytecode set
 #define BYTECODE_TABLE_OFFSET 0
-#include "SqueakV3PlusClosuresBytecodeSetDispatchTable.inc"
+#include "SqueakV3PlusClosuresBytecodeSetTable.inc"
 #undef BYTECODE_TABLE_OFFSET
 
 // SistaV1 set
 //#define BYTECODE_TABLE_OFFSET 256
-//#include "SistaV1BytecodeSetDispatchTable.inc"
+//#include "SistaV1BytecodeSetTable.inc"
 //#undef BYTECODE_TABLE_OFFSET
 
-#undef BYTECODE_DISPATCH_NAME_ARGS
-#undef BYTECODE_DISPATCH_NAME
+#undef BYTECODE_WITH_IMPLICIT_PARAM
+#undef BYTECODE
+#undef UNDEFINED_BYTECODE
 
         default:
             return CRANK_VM_OK;
