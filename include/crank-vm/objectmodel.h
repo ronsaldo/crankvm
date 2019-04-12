@@ -414,11 +414,11 @@ typedef struct crankvm_compiled_code_header_s
 {
     unsigned int isAlternateBytecode; // Sign bit - 1 bit
     unsigned int numberOfLiterals;  // At: 0 - 15 bits
-    unsigned int requiresCounters;  // At: 16 - 1 bit
+    unsigned int hasPrimitive; // At: 16 - 1 bit
     unsigned int largeFrameRequired;  // At: 17 - 1 bit
     unsigned int numberOfTemporaries; // At: 18 - 6 bits
     unsigned int numberOfArguments; // At: 24 - 4 bits
-    unsigned int hasPrimitive; // At: 28 - 1 bit
+    unsigned int requiresCounters;  // At: 28 - 1 bit FIXME: Is this one correct?
     unsigned int flag; // At: 29 - 1 bit. Ignored by the VM
 } crankvm_compiled_code_header_t;
 
@@ -431,11 +431,11 @@ static inline crankvm_error_t crankvm_object_decodeCompiledCodeHeader(crankvm_co
 
     result->isAlternateBytecode = (decodedInteger < 0) ? 1 : 0;
     result->numberOfLiterals = CRANK_VM_AT_GET_BITS(decodedInteger, 0, 15);
-    result->requiresCounters = CRANK_VM_AT_GET_BITS(decodedInteger, 16, 1);
+    result->hasPrimitive = CRANK_VM_AT_GET_BITS(decodedInteger, 16, 1);
     result->largeFrameRequired = CRANK_VM_AT_GET_BITS(decodedInteger, 17, 1);
     result->numberOfTemporaries = CRANK_VM_AT_GET_BITS(decodedInteger, 18, 6);
     result->numberOfArguments = CRANK_VM_AT_GET_BITS(decodedInteger, 24, 4);
-    result->hasPrimitive = CRANK_VM_AT_GET_BITS(decodedInteger, 28, 1);
+    result->requiresCounters = CRANK_VM_AT_GET_BITS(decodedInteger, 28, 1);
     result->flag = CRANK_VM_AT_GET_BITS(decodedInteger, 29, 1);
     return CRANK_VM_OK;
 };

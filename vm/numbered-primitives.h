@@ -1,6 +1,7 @@
 #ifndef CRANK_VM_NUMBERED_PRIMITIVES_H
 #define CRANK_VM_NUMBERED_PRIMITIVES_H
 
+#include "quick-method-primitives.h"
 #include "arithmetic-primitives.h"
 #include "system-primitives.h"
 #include "object-primitives.h"

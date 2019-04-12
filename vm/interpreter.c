@@ -302,6 +302,13 @@ crankvm_interpreter_returnOopFromBlock(crankvm_interpreter_state_t *self, crankv
 }
 
 static crankvm_error_t
+crankvm_interpreter_inlineQuickMethod(crankvm_interpreter_state_t *self, int expectedArgumentCount, int quickMethodPrimitiveNumber)
+{
+    //UNIMPLEMENTED();
+    return CRANK_VM_ERROR_UNIMPLEMENTED;
+}
+
+static crankvm_error_t
 crankvm_interpreter_activateMethodWithArguments(crankvm_interpreter_state_t *self, int expectedArgumentCount, crankvm_oop_t methodOop)
 {
     // Get the compiled method context.
@@ -320,10 +327,25 @@ crankvm_interpreter_activateMethodWithArguments(crankvm_interpreter_state_t *sel
     if(initialPC >= compiledMethodSize)
         return CRANK_VM_ERROR_INVALID_PARAMETER;
 
+    // If the called code has a primitive, then this could be a quick method.
+    if(calledHeader.hasPrimitive)
+    {
+        uint8_t *methodInstructions = (uint8_t*)(methodOop + sizeof(crankvm_object_header_t));
+        int primitiveNumber = methodInstructions[initialPC] | (methodInstructions[initialPC + 1] << 8);
+        if(crankvm_primitive_isQuickMethod(primitiveNumber))
+        {
+            // Try to interpret the quick method inline. If this inline interpretation fails,
+            // we create the context with the purpose of raising the proper exception.
+            error = crankvm_interpreter_inlineQuickMethod(self, expectedArgumentCount, primitiveNumber);
+            if(!error)
+                return CRANK_VM_OK;
+        }
+    }
+
     // Create the new context.
     crankvm_MethodContext_t *newContext = crankvm_MethodContext_create(_theContext, calledHeader.largeFrameRequired);
 
-    // Set the sender context.
+    // Setup the activated method context.
     newContext->baseClass.sender = (crankvm_oop_t)self->objects.methodContext;
     newContext->baseClass.pc = crankvm_oop_encodeSmallInteger(initialPC);
     newContext->method = methodOop;
@@ -366,13 +388,14 @@ crankvm_interpreter_sendTo(crankvm_interpreter_state_t *self, int expectedArgume
         UNIMPLEMENTED();
     }
 
-    // TODO: Create the context, and invoke the method.
+    // TODO: Support calling something that is not a compiled code.
     if(!crankvm_oop_isCompiledCode(methodOop))
     {
         printf("TODO: Send to non-compiled method\n");
         UNIMPLEMENTED();
     }
 
+    // Create the context, and invoke the method.
     return crankvm_interpreter_activateMethodWithArguments(self, expectedArgumentCount, methodOop);
 }
 
@@ -775,6 +798,10 @@ crankvm_interpreter_bytecodeCallPrimitive(crankvm_interpreter_state_t *self)
 {
     unsigned int primitiveNumber = crankvm_interpreter_fetchByte(self) + (crankvm_interpreter_fetchByte(self)<<8);
     fetchNextInstruction();
+
+    // Ignore quick method primitives here.
+    if(crankvm_primitive_isQuickMethod(primitiveNumber))
+        return CRANK_VM_OK;
 
     // Is this an inline primitive?
     if(primitiveNumber & 0x8000)
