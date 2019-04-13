@@ -367,6 +367,9 @@ crankvm_heap_loadImageContent(crankvm_context_t *context, crankvm_read_memory_st
     context->roots.falseOop = context->roots.specialObjectsArray->falseObject;
     context->roots.trueOop = context->roots.specialObjectsArray->trueObject;
 
+    // Initialize with nil some other non-mandatory objects.
+    context->roots.byteSymbolClassOop = context->roots.nilOop;
+
     if(context->roots.nilOop != (crankvm_oop_t)heap->firstSegment.address)
         return CRANK_VM_ERROR_INVALID_PARAMETER;
     if(context->roots.falseOop != (crankvm_oop_t)crankvm_heap_objectPointerAfter(heap, (crankvm_object_header_t*)context->roots.nilOop))
@@ -387,6 +390,10 @@ crankvm_heap_loadImageContent(crankvm_context_t *context, crankvm_read_memory_st
     free(heap->segmentInfos);
     heap->segmentInfoCapacity = 0;
     heap->segmentInfoSize = 0;
+
+    // Infer some additional classes that are used for debugging purposes.
+    context->roots.byteSymbolClassOop = crankvm_object_getClass(context, context->roots.specialObjectsArray->selectorDoesNotUnderstand);
+
 
     return CRANK_VM_OK;
 }

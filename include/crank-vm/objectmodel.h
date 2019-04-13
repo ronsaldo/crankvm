@@ -126,6 +126,39 @@ crankvm_oop_isSmallFloat(crankvm_oop_t oop)
     return (oop & CRANK_VM_OOP_TAG_SMALL_FLOAT_MASK) == CRANK_VM_OOP_TAG_SMALL_FLOAT_VALUE;
 }
 
+#if CRANK_VM_WORD_SIZE == 4
+
+static inline crankvm_oop_t
+crankvm_oop_encodeSmallFloat(crankvm_oop_t oop)
+{
+    abort();
+}
+
+static inline double
+crankvm_oop_decodeSmallFloat(crankvm_oop_t oop)
+{
+    abort();
+}
+
+#else
+static inline crankvm_oop_t
+crankvm_oop_encodeSmallFloat(crankvm_oop_t oop)
+{
+    crankvm_assertAlways(crankvm_oop_isSmallFloat(oop));
+    // TODO: implement this case.
+    return 0.0;
+}
+
+static inline double
+crankvm_oop_decodeSmallFloat(crankvm_oop_t oop)
+{
+    crankvm_assertAlways(crankvm_oop_isSmallFloat(oop));
+    // TODO: implement this case.
+    return 0.0;
+}
+
+#endif
+
 typedef enum crankvm_object_format_e
 {
 	CRANK_VM_OBJECT_FORMAT_EMPTY = 0,
@@ -453,5 +486,6 @@ LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_getClass(crankvm_context_t *con
 LIB_CRANK_VM_EXPORT int crankvm_object_isClass(crankvm_context_t *context, crankvm_oop_t object);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forInteger(crankvm_context_t *context, intptr_t integer);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forBoolean(crankvm_context_t *context, int boolean);
+LIB_CRANK_VM_EXPORT void crankvm_object_prettyPrintTo(crankvm_context_t *context, crankvm_oop_t object, FILE *output);
 
 #endif //_CRANK_VM_OBJECT_MODEL_H_

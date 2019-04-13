@@ -112,6 +112,9 @@ crankvm_context_run(crankvm_context_t *context)
     if(error)
         return error;
 
-    printf("Interpreter result: %p\n", (void*)returnValue);
+    printf("Interpreter result: ");
+    crankvm_object_prettyPrintTo(context, returnValue, stdout);
+    printf("\n");
+
     return CRANK_VM_OK;
 }

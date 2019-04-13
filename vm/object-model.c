@@ -146,3 +146,53 @@ crankvm_object_forBoolean(crankvm_context_t *context, int boolean)
 {
     return boolean ? crankvm_specialObject_true(context) : crankvm_specialObject_false(context);
 }
+
+LIB_CRANK_VM_EXPORT void
+crankvm_object_prettyPrintTo(crankvm_context_t *context, crankvm_oop_t object, FILE *output)
+{
+    if(!crankvm_oop_isPointer(object))
+    {
+        if(crankvm_oop_isSmallInteger(object))
+        {
+#if CRANK_VM_WORD_SIZE == 4
+            fprintf(output, "(SmallInteger)%d", crankvm_oop_decodeSmallInteger(object));
+#else
+#    ifdef _WIN32
+            fprintf(output, "(SmallInteger)%lld", crankvm_oop_decodeSmallInteger(object));
+#    else
+            fprintf(output, "(SmallInteger)%ld", crankvm_oop_decodeSmallInteger(object));
+#    endif
+#endif
+        }
+        else if(crankvm_oop_isSmallFloat(object))
+        {
+            fprintf(output, "(SmallFloat)%f", crankvm_oop_decodeSmallFloat(object));
+        }
+        else if(crankvm_oop_isCharacter(object))
+        {
+            fprintf(output, "(Character)%d", (int)crankvm_oop_decodeCharacter(object));
+        }
+        else
+        {
+            fprintf(output, "(Unsupported immediate)0x%p", (void*)object);
+        }
+
+        return;
+    }
+
+    // Support some classes
+    crankvm_Behavior_t *class = (crankvm_Behavior_t*)crankvm_object_getClass(context, object);
+    crankvm_special_object_array_t *specialObjects = context->roots.specialObjectsArray;
+    if(class == specialObjects->classByteString)
+    {
+        fprintf(output, "(ByteString)'%.*s'", crankvm_string_printf_arg(object));
+    }
+    else if(class == (crankvm_Behavior_t*)context->roots.byteSymbolClassOop)
+    {
+        fprintf(output, "(ByteSymbol)#'%.*s'", crankvm_string_printf_arg(object));
+    }
+    else
+    {
+        fprintf(output, "(Oop)0x%p", (void*)object);
+    }
+}

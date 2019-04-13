@@ -25,6 +25,8 @@ struct crankvm_context_s
         crankvm_oop_t falseOop;
         crankvm_oop_t trueOop;
 
+        crankvm_oop_t byteSymbolClassOop; /* Use for pretty printing objects*/ 
+
         crankvm_oop_t freeListObject;
         crankvm_HiddenRoots_t *hiddenRootsObject;
         crankvm_ClassTablePage_t *firstClassTablePage;
