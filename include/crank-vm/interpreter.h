@@ -20,6 +20,7 @@ typedef struct crankvm_primitive_context_s
         crankvm_oop_t *arguments;
         crankvm_oop_t receiver;
         crankvm_oop_t result;
+        crankvm_MethodContext_t *primitiveMethodContext;
     } roots;
 } crankvm_primitive_context_t;
 
@@ -43,6 +44,12 @@ crankvm_primitive_failWithCode(crankvm_primitive_context_t *primitiveContext, cr
 {
     if(primitiveContext->error == CRANK_VM_PRIMITIVE_SUCCESS)
         primitiveContext->error = code;
+}
+
+static inline void
+crankvm_primitive_failWithVMErrorCode(crankvm_primitive_context_t *primitiveContext, crankvm_primitive_error_code_t code)
+{
+    crankvm_primitive_failWithCode(primitiveContext, CRANK_VM_PRIMITIVE_ERROR);
 }
 
 static inline void
@@ -134,6 +141,30 @@ static inline void
 crankvm_primitive_returnOop(crankvm_primitive_context_t *primitiveContext, crankvm_oop_t result)
 {
     return crankvm_primitive_successWithResult(primitiveContext, result);
+}
+
+static inline crankvm_context_t*
+crankvm_primitive_getContext(crankvm_primitive_context_t *primitiveContext)
+{
+    return primitiveContext->context;
+}
+
+static inline crankvm_MethodContext_t*
+crankvm_primitive_getPrimitiveMethodContext(crankvm_primitive_context_t *primitiveContext)
+{
+    return primitiveContext->roots.primitiveMethodContext;
+}
+
+static inline crankvm_MethodContext_t*
+crankvm_primitive_getPrimitiveSenderMethodContext(crankvm_primitive_context_t *primitiveContext)
+{
+    return (crankvm_MethodContext_t*)crankvm_primitive_getPrimitiveMethodContext(primitiveContext)->baseClass.sender;
+}
+
+static inline void
+crankvm_primitive_finishReplacingMethodContext(crankvm_primitive_context_t *primitiveContext, crankvm_MethodContext_t *newMethodContext)
+{
+    primitiveContext->roots.primitiveMethodContext = newMethodContext;
 }
 
 // Interpreter accessors.

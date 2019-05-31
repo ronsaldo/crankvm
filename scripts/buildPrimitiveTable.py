@@ -1,11 +1,21 @@
 #!/usr/bin/python
 import sys
 
+primitiveNumberNameDictionary = {}
+with open('../include/crank-vm/system-primitive-number.h', 'r') as f:
+    for line in f:
+        line = line.strip()
+        if line.startswith('CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_') and ('=' in line):
+            name = line[:line.find('=')].strip()
+            number = line[line.find('=')+1:line.find(',')].strip()
+            if number.isdigit():
+                primitiveNumberNameDictionary[name] = int(number)
+
 allPrimitives = []
 for line in sys.stdin:
     elements = line.strip().split()
     name = elements[0]
-    firstRange = int(elements[1])
+    firstRange = int(primitiveNumberNameDictionary.get(elements[1].strip(), elements[1]))
     lastRange = firstRange
     if len(elements) > 2:
         lastRange = int(elements[2])

@@ -209,6 +209,35 @@ typedef struct crankvm_MethodContext_s
 } crankvm_MethodContext_t;
 
 /**
+ * BlockClosure
+ */
+typedef struct crankvm_BlockClosure_s
+{
+    crankvm_Object_t baseClass;
+
+    crankvm_MethodContext_t *outerContext;
+    crankvm_oop_t startpc;
+    crankvm_oop_t numArgs;
+    crankvm_oop_t capturedTemporaries[];
+} crankvm_BlockClosure_t;
+
+#define CRANK_VM_BlockClosure_InstanceFixedSize 3
+
+/**
+ * FullBlockClosure
+ */
+typedef struct crankvm_FullBlockClosure_s
+{
+    crankvm_Object_t baseClass;
+
+    crankvm_MethodContext_t *outerContext;
+    crankvm_oop_t startpc;
+    crankvm_oop_t numArgs;
+    crankvm_oop_t receiver;
+    crankvm_oop_t capturedTemporaries[];
+} crankvm_FullBlockClosure_t;
+
+/**
  * Association
  */
 typedef struct crankvm_Association_s
@@ -423,13 +452,13 @@ typedef struct crankvm_special_object_array_s
 
 	crankvm_oop_t selectorCannotInterpret; //34.
 	crankvm_oop_t old_MethodContextProto; //35.
-	crankvm_oop_t classBlockClosure; //36.
+	crankvm_Behavior_t *classBlockClosure; //36.
 	crankvm_oop_t old_BlockContextProto; //37.
 	crankvm_oop_t externalObjectsArray; //38.
 	crankvm_oop_t classMutex; //39.
 	crankvm_oop_t processInExternalCodeTag; //40.
 	crankvm_oop_t theFinalizationSemaphore; //41.
-	crankvm_oop_t classLargeNegativeInteger; //42.
+	crankvm_Behavior_t *classLargeNegativeInteger; //42.
 
 	crankvm_Behavior_t *classExternalAddress; //43.
 	crankvm_Behavior_t *classExternalStructure; //44.
@@ -500,12 +529,11 @@ crankvm_Behavior_getInstanceSize(crankvm_Behavior_t *behavior)
     return crankvm_oop_decodeSmallInteger(behavior->format) & 0xFFFF;
 }
 
-LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_MethodContext_validate(crankvm_context_t *context, crankvm_MethodContext_t *methodContext);
-
 LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_CompiledCode_validate(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode);
 LIB_CRANK_VM_EXPORT size_t crankvm_CompiledCode_getNumberOfLiterals(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_CompiledCode_getSelector(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode);
 LIB_CRANK_VM_EXPORT size_t crankvm_CompiledCode_getFirstPC(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode);
+LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_CompiledCode_checkActivationWithArgumentCount(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode, int argumentCount, crankvm_compiled_code_header_t *parsedCompiledCodeHeader, int *parsedPrimitiveNumber, uintptr_t *parsedInitialPC);
 
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_MethodDictionary_atOrNil(crankvm_context_t *context, crankvm_MethodDictionary_t *methodDict, crankvm_oop_t key);
 
@@ -515,6 +543,14 @@ LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_Behavior_getName(crankvm_context_t *co
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_Behavior_basicNew(crankvm_context_t *context, crankvm_Behavior_t *behavior);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_Behavior_basicNewWithVariable(crankvm_context_t *context, crankvm_Behavior_t *behavior, size_t variableSize);
 
+LIB_CRANK_VM_EXPORT crankvm_BlockClosure_t *crankvm_BlockClosure_create(crankvm_context_t *context, uintptr_t argumentCount, size_t copiedValueCount);
+
 LIB_CRANK_VM_EXPORT crankvm_MethodContext_t *crankvm_MethodContext_create(crankvm_context_t *context, int largeFrame);
+LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_MethodContext_createCompiledMethodActivationContext(crankvm_context_t *vmContext, crankvm_MethodContext_t **result, crankvm_CompiledCode_t *compiledCode, crankvm_oop_t receiver, int argumentCount, crankvm_oop_t *arguments, crankvm_compiled_code_header_t *calledHeader, uintptr_t initialPC);
+LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_MethodContext_createBlockClosureActivationContext(crankvm_context_t *vmContext, crankvm_MethodContext_t **result, crankvm_BlockClosure_t *blockClosure, int argumentCount, crankvm_oop_t *arguments);
+LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_MethodContext_createFullBlockClosureActivationContext(crankvm_context_t *vmContext, crankvm_MethodContext_t **result, crankvm_BlockClosure_t *blockClosure, int argumentCount, crankvm_oop_t *arguments);
+LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_MethodContext_createCompiledCodeMethodActivationContext(crankvm_context_t *context, crankvm_MethodContext_t **result, crankvm_CompiledCode_t *compiledCode, crankvm_oop_t receiver, int argumentCount, crankvm_oop_t *arguments);
+LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_MethodContext_createObjectMessageSendActivationContext(crankvm_context_t *context, crankvm_MethodContext_t **result, crankvm_oop_t receiver, crankvm_oop_t selector, int argumentCount, crankvm_oop_t *arguments);
+LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_MethodContext_validate(crankvm_context_t *context, crankvm_MethodContext_t *methodContext);
 
 #endif //CRANK_VM_SPECIAL_OBJECTS_H

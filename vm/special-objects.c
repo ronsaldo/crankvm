@@ -1,5 +1,6 @@
 #include <crank-vm/special-objects.h>
 #include <crank-vm/context.h>
+#include <crank-vm/system-primitive-number.h>
 #include "heap.h"
 #include "context-internal.h"
 
@@ -45,20 +46,7 @@ crankvm_CompiledCode_getFirstPC(crankvm_context_t *context, crankvm_CompiledCode
     return crankvm_CompiledCode_getNumberOfLiterals(context, compiledCode) + sizeof(crankvm_oop_t) + 1;
 }
 
-LIB_CRANK_VM_EXPORT crankvm_error_t
-crankvm_MethodContext_validate(crankvm_context_t *context, crankvm_MethodContext_t *methodContext)
-{
-    if(crankvm_object_isNilOrNull(context, methodContext))
-        return CRANK_VM_ERROR_NULL_POINTER;
-
-    if(!crankvm_oop_isSmallInteger(methodContext->baseClass.pc) ||
-        !crankvm_oop_isSmallInteger(methodContext->stackp))
-        return CRANK_VM_ERROR_INVALID_PARAMETER;
-
-    return CRANK_VM_OK;
-}
-
-
+// MethodDictionary
 LIB_CRANK_VM_EXPORT crankvm_oop_t
 crankvm_MethodDictionary_atOrNil(crankvm_context_t *context, crankvm_MethodDictionary_t *methodDict, crankvm_oop_t keyObject)
 {
@@ -86,6 +74,7 @@ crankvm_MethodDictionary_atOrNil(crankvm_context_t *context, crankvm_MethodDicti
     return crankvm_specialObject_nil(context);
 }
 
+// Behavior
 LIB_CRANK_VM_EXPORT crankvm_oop_t
 crankvm_Behavior_lookupSelector(crankvm_context_t *context, crankvm_Behavior_t *behavior, crankvm_oop_t selector)
 {
@@ -151,6 +140,17 @@ crankvm_Behavior_basicNewWithVariable(crankvm_context_t *context, crankvm_Behavi
     return crankvm_Behavior_initializeAllocateObject(context, behavior, header);
 }
 
+// BlockClosure
+LIB_CRANK_VM_EXPORT crankvm_BlockClosure_t *
+crankvm_BlockClosure_create(crankvm_context_t *context, uintptr_t argumentCount, size_t copiedValueCount)
+{
+    crankvm_Behavior_t *classBlockClosure = context->roots.specialObjectsArray->classBlockClosure;
+    crankvm_BlockClosure_t *result = (crankvm_BlockClosure_t*)crankvm_Behavior_basicNewWithVariable(context, classBlockClosure, copiedValueCount);
+    result->numArgs = crankvm_oop_encodeSmallInteger(argumentCount);
+    return result;
+}
+
+// MethodContext
 LIB_CRANK_VM_EXPORT crankvm_MethodContext_t*
 crankvm_MethodContext_create(crankvm_context_t *context, int largeFrame)
 {
@@ -159,4 +159,216 @@ crankvm_MethodContext_create(crankvm_context_t *context, int largeFrame)
         return (crankvm_MethodContext_t*)crankvm_Behavior_basicNewWithVariable(context, classMethodContext, CRANK_VM_METHOD_CONTEXT_LARGE_FRAME_SIZE);
     else
         return (crankvm_MethodContext_t*)crankvm_Behavior_basicNewWithVariable(context, classMethodContext, CRANK_VM_METHOD_CONTEXT_SMALL_FRAME_SIZE);
+}
+
+LIB_CRANK_VM_EXPORT crankvm_error_t
+crankvm_CompiledCode_checkActivationWithArgumentCount(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode, int argumentCount, crankvm_compiled_code_header_t *parsedCompiledCodeHeader, int *parsedPrimitiveNumber, uintptr_t *parsedInitialPC)
+{
+    crankvm_compiled_code_header_t calledHeader;
+    crankvm_error_t error = crankvm_specialObject_getCompiledCodeHeader(&calledHeader, compiledCode);
+    if(error)
+        return error;
+
+    // Check the number of arguments
+    if(calledHeader.numberOfArguments != argumentCount)
+        return CRANK_VM_ERROR_CALLED_METHOD_ARGUMENT_MISMATCH;
+
+    // Compute the initial pc
+    uintptr_t initialPC = (calledHeader.numberOfLiterals + 1) *sizeof(crankvm_oop_t) + 1;
+    size_t compiledMethodSize = crankvm_object_header_getSmalltalkSize(&compiledCode->baseClass.objectHeader);
+    if(initialPC >= compiledMethodSize)
+        return CRANK_VM_ERROR_INVALID_PARAMETER;
+
+    if(parsedCompiledCodeHeader)
+        *parsedCompiledCodeHeader = calledHeader;
+
+    if(parsedPrimitiveNumber)
+    {
+        if(calledHeader.hasPrimitive)
+        {
+            uint8_t *methodInstructions = (uint8_t*)(((crankvm_oop_t)compiledCode) + sizeof(crankvm_object_header_t));
+            *parsedPrimitiveNumber = methodInstructions[initialPC] | (methodInstructions[initialPC + 1] << 8);
+        }
+        else
+        {
+            *parsedPrimitiveNumber = -1;
+        }
+    }
+
+    if(parsedInitialPC)
+        *parsedInitialPC = initialPC;
+
+    return CRANK_VM_OK;
+}
+
+
+LIB_CRANK_VM_EXPORT crankvm_error_t
+crankvm_MethodContext_createCompiledMethodActivationContext(crankvm_context_t *vmContext, crankvm_MethodContext_t **result, crankvm_CompiledCode_t *compiledCode, crankvm_oop_t receiver, int argumentCount, crankvm_oop_t *arguments, crankvm_compiled_code_header_t *calledHeader, uintptr_t initialPC)
+{
+    // Create the new context.
+    crankvm_MethodContext_t *newContext = crankvm_MethodContext_create(vmContext, calledHeader->largeFrameRequired);
+
+    // Setup the activated method context.
+    newContext->baseClass.pc = crankvm_oop_encodeSmallInteger(initialPC);
+    newContext->method = (crankvm_oop_t)compiledCode;
+
+    // Pop the arguments into the new context.
+    if(arguments)
+    {
+        for(int i = 0; i < argumentCount; ++i)
+            newContext->stackSlots[i] = arguments[i];
+    }
+
+    // Pop the receiver into the new context.
+    newContext->receiver = receiver;
+    newContext->stackp = crankvm_oop_encodeSmallInteger(argumentCount + calledHeader->numberOfTemporaries);
+
+    *result = newContext;
+    return CRANK_VM_OK;
+}
+
+LIB_CRANK_VM_EXPORT crankvm_error_t
+crankvm_MethodContext_createBlockClosureActivationContext(crankvm_context_t *vmContext, crankvm_MethodContext_t **result, crankvm_BlockClosure_t *blockClosure, int argumentCount, crankvm_oop_t *arguments)
+{
+    // Make sure the number of arguments, and the initial pc are small integers.
+    if(!crankvm_oop_isSmallInteger(blockClosure->numArgs) ||
+       !crankvm_oop_isSmallInteger(blockClosure->startpc))
+        return CRANK_VM_ERROR_INVALID_PARAMETER;
+
+    // Check the expected argument count.
+    intptr_t expectedArgumentCount = crankvm_oop_decodeSmallInteger(blockClosure->numArgs);
+    intptr_t rawStartPC = crankvm_oop_decodeSmallInteger(blockClosure->startpc);
+    if(expectedArgumentCount != argumentCount || rawStartPC <= 0)
+        return CRANK_VM_ERROR_INVALID_PARAMETER;
+
+    // Get the compiled method, and decode its header.
+    crankvm_CompiledCode_t *compiledMethod = (crankvm_CompiledCode_t*)blockClosure->outerContext->method;
+    crankvm_compiled_code_header_t compiledMethodHeader;
+    crankvm_error_t error = crankvm_specialObject_getCompiledCodeHeader(&compiledMethodHeader, compiledMethod);
+    if(error)
+        return error;
+
+    // Check whether the initial pc is on bounds.
+    size_t compiledMethodSize = crankvm_object_header_getSmalltalkSize(&compiledMethod->baseClass.objectHeader);
+    uintptr_t methodInitialPC = (compiledMethodHeader.numberOfLiterals + 1) *sizeof(crankvm_oop_t) + 1;
+    uintptr_t startPC = (uintptr_t)rawStartPC;
+    if(startPC < methodInitialPC || methodInitialPC >= compiledMethodSize)
+        return CRANK_VM_ERROR_OUT_OF_BOUNDS;
+
+    // Create the block closure context.
+    crankvm_MethodContext_t *activationContext = crankvm_MethodContext_create(vmContext, compiledMethodHeader.largeFrameRequired);
+    if(!activationContext)
+        return CRANK_VM_ERROR_OUT_OF_MEMORY;
+
+    // Setup the closure activation context.
+    activationContext->closureOrNil = (crankvm_oop_t)blockClosure;
+    activationContext->method = (crankvm_oop_t)compiledMethod;
+    activationContext->baseClass.pc = blockClosure->startpc;
+
+    // Copy the passed arguments.
+    if(arguments)
+    {
+        for(size_t i = 0; i < argumentCount; ++i)
+            activationContext->stackSlots[i] = arguments[i];
+    }
+
+    // Copy the closure captured temporaries.
+    size_t capturedTemporaryCount = crankvm_object_header_getSmalltalkSize(&blockClosure->baseClass.objectHeader) - CRANK_VM_BlockClosure_InstanceFixedSize;
+    for(size_t i = 0; i < capturedTemporaryCount; ++i)
+        activationContext->stackSlots[argumentCount + i] = blockClosure->capturedTemporaries[i];
+
+    // Set the receiver and the stack pointer.
+    activationContext->receiver = blockClosure->outerContext->receiver;
+    activationContext->stackp = crankvm_oop_encodeSmallInteger(argumentCount + capturedTemporaryCount);
+
+    // Return
+    *result = activationContext;
+    return CRANK_VM_OK;
+}
+
+LIB_CRANK_VM_EXPORT crankvm_error_t
+crankvm_MethodContext_createFullBlockClosureActivationContext(crankvm_context_t *vmContext, crankvm_MethodContext_t **result, crankvm_BlockClosure_t *blockClosure, int argumentCount, crankvm_oop_t *arguments)
+{
+    return CRANK_VM_ERROR_UNIMPLEMENTED;
+}
+
+LIB_CRANK_VM_EXPORT crankvm_error_t
+crankvm_MethodContext_createCompiledCodeMethodActivationContext(crankvm_context_t *vmContext, crankvm_MethodContext_t **result, crankvm_CompiledCode_t *compiledCode, crankvm_oop_t receiver, int argumentCount, crankvm_oop_t *arguments)
+{
+    // Get the compiled method context.
+    crankvm_compiled_code_header_t calledHeader;
+    uintptr_t initialPC;
+    int parsedPrimitiveNumber;
+    crankvm_error_t error = crankvm_CompiledCode_checkActivationWithArgumentCount(vmContext, compiledCode, argumentCount, &calledHeader, &parsedPrimitiveNumber, &initialPC);
+    if(error)
+        return error;
+
+    if(calledHeader.hasPrimitive)
+    {
+        switch(parsedPrimitiveNumber)
+        {
+        case CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_BLOCK_VALUE_ARGS0:
+        case CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_BLOCK_VALUE_ARGS1:
+        case CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_BLOCK_VALUE_ARGS2:
+        case CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_BLOCK_VALUE_ARGS3:
+        case CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_BLOCK_VALUE_ARGS4:
+            if(argumentCount == (parsedPrimitiveNumber - CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_BLOCK_VALUE_ARGS0))
+                return crankvm_MethodContext_createBlockClosureActivationContext(vmContext, result, (crankvm_BlockClosure_t*)receiver, argumentCount, arguments);
+            break;
+        case CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_BLOCK_VALUE_WITH_ARGUMENTS:
+            printf("TODO: Create block closure activation with arguments context\n");
+            break;
+        case CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FULL_BLOCK_VALUE:
+            printf("TODO: Create full block closure activation context\n");
+            break;
+        case CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FULL_BLOCK_VALUE_WITH_ARGUMENTS:
+            printf("TODO: Create full block closure activation with arguments context\n");
+            break;
+        default:
+            /* The normal primitive activation handling logic takes care of it. */
+            break;
+        }
+    }
+
+    return crankvm_MethodContext_createCompiledMethodActivationContext(vmContext, result, compiledCode, receiver, argumentCount, arguments, &calledHeader, initialPC);
+}
+
+LIB_CRANK_VM_EXPORT crankvm_error_t
+crankvm_MethodContext_createObjectMessageSendActivationContext(crankvm_context_t *context, crankvm_MethodContext_t **result, crankvm_oop_t receiver, crankvm_oop_t selector, int argumentCount, crankvm_oop_t *arguments)
+{
+    // Get the receiver class.
+    crankvm_oop_t receiverClass = crankvm_object_getClass(context, receiver);
+    if(crankvm_oop_isNil(context, receiverClass))
+        return CRANK_VM_ERROR_RECEIVER_CLASS_NIL;
+
+    // Lookup the selector
+    crankvm_oop_t methodOop = crankvm_Behavior_lookupSelector(context, (crankvm_Behavior_t*)receiverClass, selector);
+    if(crankvm_oop_isNil(context, methodOop))
+    {
+        printf("TODO: Send doesNotUnderstand:\n");
+        abort();
+    }
+
+    // TODO: Support calling something that is not a compiled code.
+    if(!crankvm_oop_isCompiledCode(methodOop))
+    {
+        printf("TODO: Send to non-compiled method\n");
+        abort();
+    }
+
+    crankvm_CompiledCode_t *compiledCode = (crankvm_CompiledCode_t*)methodOop;
+    return crankvm_MethodContext_createCompiledCodeMethodActivationContext(context, result, compiledCode, receiver, argumentCount, arguments);
+}
+
+LIB_CRANK_VM_EXPORT crankvm_error_t
+crankvm_MethodContext_validate(crankvm_context_t *context, crankvm_MethodContext_t *methodContext)
+{
+    if(crankvm_object_isNilOrNull(context, methodContext))
+        return CRANK_VM_ERROR_NULL_POINTER;
+
+    if(!crankvm_oop_isSmallInteger(methodContext->baseClass.pc) ||
+        !crankvm_oop_isSmallInteger(methodContext->stackp))
+        return CRANK_VM_ERROR_INVALID_PARAMETER;
+
+    return CRANK_VM_OK;
 }

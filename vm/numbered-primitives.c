@@ -2,10 +2,10 @@
 #include "numbered-primitives.h"
 
 // The number of primitives in the numbered primitive table
-const size_t crankvm_numberedPrimitiveTableSize = 170;
+const size_t crankvm_numberedPrimitiveTableSize = 206;
 
 // The numbered primitive table
-const crankvm_primitive_function_t crankvm_numberedPrimitiveTable[170] = {
+const crankvm_primitive_function_t crankvm_numberedPrimitiveTable[206] = {
     NULL,
     crankvm_primitive_integerAdd,
     crankvm_primitive_integerSubtract,
@@ -176,4 +176,40 @@ const crankvm_primitive_function_t crankvm_numberedPrimitiveTable[170] = {
     NULL,
     NULL,
     crankvm_primitive_identityNotEquals,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    crankvm_primitive_blockValue0,
+    crankvm_primitive_blockValue1,
+    crankvm_primitive_blockValue2,
+    crankvm_primitive_blockValue3,
+    crankvm_primitive_blockValue4,
 };

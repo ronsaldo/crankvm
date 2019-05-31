@@ -1,5 +1,6 @@
 set(CrankVM_SOURCES
     arithmetic-primitives.c
+    block-primitives.c
     context.c
     error.c
     heap.c

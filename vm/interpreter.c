@@ -127,6 +127,7 @@ crankvm_interpreter_getTemporary(crankvm_interpreter_state_t *self, size_t index
 LIB_CRANK_VM_EXPORT inline crankvm_oop_t
 crankvm_interpreter_setTemporary(crankvm_interpreter_state_t *self, size_t index, crankvm_oop_t value)
 {
+    printf("index %zu\n", index);
     assert(crankvm_interpreter_checkTemporaryIndex(self, index) == CRANK_VM_OK);
     self->objects.methodContext->stackSlots[index] = value;
     return CRANK_VM_OK;
@@ -267,7 +268,7 @@ crankvm_interpreter_localMethodReturnOop(crankvm_interpreter_state_t *self, cran
     // Clear the sender of the context.
     self->objects.methodContext->baseClass.sender = crankvm_specialObject_nil(self->context);
 
-    // If the return context is nil, then it is time to finish the interepreter
+    // If the return context is nil, then it is time to finish the interpreter.
     if(crankvm_object_isNil(self->context, returnContext))
     {
         if(self->callerReturnValuePointer)
@@ -311,44 +312,36 @@ crankvm_interpreter_inlineQuickMethod(crankvm_interpreter_state_t *self, int exp
 static crankvm_error_t
 crankvm_interpreter_activateMethodWithArguments(crankvm_interpreter_state_t *self, int expectedArgumentCount, crankvm_oop_t methodOop)
 {
-    // Get the compiled method context.
+    // Check the activation argument count.
     crankvm_compiled_code_header_t calledHeader;
-    crankvm_error_t error = crankvm_specialObject_getCompiledCodeHeader(&calledHeader, (crankvm_CompiledCode_t*)methodOop);
+    int parsedPrimitiveNumber;
+    uintptr_t initialPC;
+    crankvm_error_t error = crankvm_CompiledCode_checkActivationWithArgumentCount(_theContext, (crankvm_CompiledCode_t*)methodOop, expectedArgumentCount, &calledHeader, &parsedPrimitiveNumber, &initialPC);
     if(error)
         return error;
 
-    // Check the number of arguments
-    if(calledHeader.numberOfArguments != expectedArgumentCount)
-        return CRANK_VM_ERROR_CALLED_METHOD_ARGUMENT_MISMATCH;
-
-    // Compute the initial pc
-    uintptr_t initialPC = (calledHeader.numberOfLiterals + 1) *sizeof(crankvm_oop_t) + 1;
-    size_t compiledMethodSize = crankvm_object_header_getSmalltalkSize((crankvm_object_header_t*)methodOop);
-    if(initialPC >= compiledMethodSize)
-        return CRANK_VM_ERROR_INVALID_PARAMETER;
-
     // If the called code has a primitive, then this could be a quick method.
+
     if(calledHeader.hasPrimitive)
     {
-        uint8_t *methodInstructions = (uint8_t*)(methodOop + sizeof(crankvm_object_header_t));
-        int primitiveNumber = methodInstructions[initialPC] | (methodInstructions[initialPC + 1] << 8);
-        if(crankvm_primitive_isQuickMethod(primitiveNumber))
+        if(crankvm_primitive_isQuickMethod(parsedPrimitiveNumber))
         {
             // Try to interpret the quick method inline. If this inline interpretation fails,
             // we create the context with the purpose of raising the proper exception.
-            error = crankvm_interpreter_inlineQuickMethod(self, expectedArgumentCount, primitiveNumber);
+            error = crankvm_interpreter_inlineQuickMethod(self, expectedArgumentCount, parsedPrimitiveNumber);
             if(!error)
                 return CRANK_VM_OK;
         }
     }
 
-    // Create the new context.
-    crankvm_MethodContext_t *newContext = crankvm_MethodContext_create(_theContext, calledHeader.largeFrameRequired);
+    // Should we create a compiled method activation context?
+    crankvm_MethodContext_t *newContext = NULL;
+    error = crankvm_MethodContext_createCompiledMethodActivationContext(_theContext, &newContext, (crankvm_CompiledCode_t*)methodOop, crankvm_specialObject_nil(self->context), expectedArgumentCount, NULL, &calledHeader, initialPC);
+    if(error)
+        return error;
 
-    // Setup the activated method context.
+    // Set the sender context.
     newContext->baseClass.sender = (crankvm_oop_t)self->objects.methodContext;
-    newContext->baseClass.pc = crankvm_oop_encodeSmallInteger(initialPC);
-    newContext->method = methodOop;
 
     // Pop the arguments into the new context.
     for(int i = 0; i < expectedArgumentCount; ++i)
@@ -356,7 +349,6 @@ crankvm_interpreter_activateMethodWithArguments(crankvm_interpreter_state_t *sel
 
     // Pop the receiver into the new context.
     newContext->receiver = popOop();
-    newContext->stackp = crankvm_oop_encodeSmallInteger(expectedArgumentCount + calledHeader.numberOfTemporaries);
 
     // Store the current method context
     crankvm_interpreter_storeMethodContextState(self);
@@ -424,7 +416,8 @@ crankvm_interpreter_invokeNormalPrimitive(crankvm_interpreter_state_t *self, cra
         .roots = {
             .arguments = &self->objects.methodContext->stackSlots[0],
             .receiver = self->objects.receiver,
-            .result = _theContext->roots.nilOop
+            .result = _theContext->roots.nilOop,
+            .primitiveMethodContext = self->objects.methodContext,
         },
     };
 
@@ -439,7 +432,17 @@ crankvm_interpreter_invokeNormalPrimitive(crankvm_interpreter_state_t *self, cra
             errorObject = _theSpecialObjectsArray->primitiveErrorTable->errorNameArray[primitiveContext.error - 1];
 
         // Store the error object in the first temporary.
-        return crankvm_interpreter_setTemporary(self, self->codeHeader.numberOfArguments, errorObject);
+        if(self->codeHeader.numberOfTemporaries > 0)
+            return crankvm_interpreter_setTemporary(self, self->codeHeader.numberOfArguments, errorObject);
+        return CRANK_VM_OK;
+    }
+
+    // Are we activating a new method?
+    if(primitiveContext.roots.primitiveMethodContext != self->objects.methodContext)
+    {
+        printf("Activating new context created by primitive: %p\n", primitiveContext.roots.primitiveMethodContext);
+        self->objects.methodContext = primitiveContext.roots.primitiveMethodContext;
+        return crankvm_interpreter_fetchMethodContext(self);
     }
 
     // Handle the success case
@@ -834,7 +837,35 @@ crankvm_interpreter_bytecodePopStoreRemoteTempLong(crankvm_interpreter_state_t *
 static crankvm_error_t
 crankvm_interpreter_bytecodePushClosureCopyCopiedValues(crankvm_interpreter_state_t *self)
 {
-    UNIMPLEMENTED();
+    // Fetch and decode the instruction.
+    uint8_t numCopiedAndArgs = crankvm_interpreter_fetchByte(self);
+    uint16_t blockSize = (crankvm_interpreter_fetchByte(self) << 8) | crankvm_interpreter_fetchByte(self);
+    size_t copiedValueCount = numCopiedAndArgs >> 4;
+    size_t argumentCount = numCopiedAndArgs & 0xF;
+
+    // Check the size to pop.
+    checkSizeToPop(copiedValueCount);
+
+    // Copy the start pc and fetch the next instruction.
+    intptr_t blockStartPC = self->pc;
+    self->pc += blockSize;
+    fetchNextInstruction();
+
+    // Create the block closure.
+    crankvm_BlockClosure_t *blockClosure = crankvm_BlockClosure_create(_theContext, argumentCount, copiedValueCount);
+    if(crankvm_object_isNil(self->context, blockClosure))
+        return CRANK_VM_ERROR_OUT_OF_MEMORY;
+
+    blockClosure->startpc = crankvm_oop_encodeSmallInteger(blockStartPC + 1); // One based PC.
+    blockClosure->outerContext = self->objects.methodContext;
+
+    // Pop the copied values to the closure.
+    for(size_t i = 0; i < copiedValueCount; ++i)
+        blockClosure->capturedTemporaries[copiedValueCount - i - 1] = popOop();
+
+    // Push the block closure.
+    pushOop((crankvm_oop_t)blockClosure);
+    return CRANK_VM_OK;
 }
 
 static crankvm_error_t

@@ -87,8 +87,16 @@ crankvm_context_getEntryMethodContext(crankvm_context_t *context)
         crankvm_oop_isNil(context, context->roots.specialObjectsArray->crankVMEntryContext->value))
         return NULL;
 
-    printf("entry point key: '%.*s'\n", crankvm_string_printf_arg(context->roots.specialObjectsArray->crankVMEntryContext->key));
-    return (crankvm_MethodContext_t *)context->roots.specialObjectsArray->crankVMEntryContext->value;
+    printf("Entry point key: '%.*s'\n", crankvm_string_printf_arg(context->roots.specialObjectsArray->crankVMEntryContext->key));
+
+    crankvm_MethodContext_t *methodContext;
+    crankvm_error_t error = crankvm_MethodContext_createObjectMessageSendActivationContext(context, &methodContext,
+        context->roots.specialObjectsArray->crankVMEntryContext->value,
+        context->roots.specialObjectsArray->specialSelectors->value.selector, 0, NULL);
+    if(error)
+        return NULL;
+
+    return methodContext;
 }
 
 LIB_CRANK_VM_EXPORT crankvm_error_t
