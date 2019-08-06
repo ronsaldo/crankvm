@@ -141,6 +141,59 @@ crankvm_object_forInteger(crankvm_context_t *context, intptr_t integer)
     abort();
 }
 
+#if CRANK_VM_WORD_SIZE == 4
+LIB_CRANK_VM_EXPORT crankvm_oop_t
+crankvm_object_forInteger32(crankvm_context_t *context, int32_t integer)
+{
+    if(crankvm_oop_isIntegerInSmallIntegerRange(integer))
+        return crankvm_oop_encodeSmallInteger(integer);
+
+    printf("TODO: Make large integer in crankvm_object_forInteger\n");
+    abort();
+}
+
+LIB_CRANK_VM_EXPORT crankvm_oop_t
+crankvm_object_forUInteger32(crankvm_context_t *context, uint32_t integer)
+{
+
+    if(integer <= CRANK_VM_SMALL_INTEGER_MAX_VALUE)
+        return crankvm_oop_encodeSmallInteger(integer);
+
+    printf("TODO: Make large integer in crankvm_object_forInteger\n");
+    abort();
+}
+#else
+LIB_CRANK_VM_EXPORT crankvm_oop_t
+crankvm_object_forInteger32(crankvm_context_t *context, int32_t integer)
+{
+    return crankvm_oop_encodeSmallInteger(integer);
+}
+
+LIB_CRANK_VM_EXPORT crankvm_oop_t
+crankvm_object_forUInteger32(crankvm_context_t *context, uint32_t integer)
+{
+    return crankvm_oop_encodeSmallInteger(integer);
+}
+#endif
+
+
+LIB_CRANK_VM_EXPORT crankvm_oop_t
+crankvm_object_forInteger64(crankvm_context_t *context, int64_t integer)
+{
+    printf("TODO: Make large integer in crankvm_object_forInteger\n");
+    abort();
+}
+
+LIB_CRANK_VM_EXPORT crankvm_oop_t
+crankvm_object_forUInteger64(crankvm_context_t *context, uint64_t integer)
+{
+    if(integer <= CRANK_VM_SMALL_INTEGER_MAX_VALUE)
+        return crankvm_oop_encodeSmallInteger(integer);
+
+    printf("TODO: Make large integer in crankvm_object_forInteger\n");
+    abort();
+}
+
 LIB_CRANK_VM_EXPORT crankvm_oop_t
 crankvm_object_forBoolean(crankvm_context_t *context, int boolean)
 {

@@ -114,7 +114,7 @@
         "opcode" : 137
     },
 
-    "pushOrPopNewArray" : {
+    "pushNewArray" : {
         "opcode" : 138
     },
 

@@ -23,6 +23,8 @@ typedef enum crankvm_error_e
     CRANK_VM_ERROR_RECEIVER_CLASS_NIL = -15,
     CRANK_VM_ERROR_CALLED_METHOD_ARGUMENT_MISMATCH = -16,
     CRANK_VM_ERROR_ILLEGAL_INSTRUCTION = -17,
+    CRANK_VM_ERROR_ILLEGAL_STORE = -18,
+    CRANK_VM_ERROR_NIL_REMOTE_VECTOR = -19,
 } crankvm_error_t;
 
 LIB_CRANK_VM_EXPORT const char *crankvm_error_getString(crankvm_error_t error);

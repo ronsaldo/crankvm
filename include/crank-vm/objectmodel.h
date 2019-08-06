@@ -69,6 +69,9 @@ enum crankvm_oop_tag_e
 #define CRANK_VM_SMALL_INTEGER_MIN_VALUE (-( ((intptr_t)1)<<(CRANK_VM_SMALL_INTEGER_USABLE_BITS - 1) ) )
 #define CRANK_VM_SMALL_INTEGER_MAX_VALUE (+( ((intptr_t)1)<<(CRANK_VM_SMALL_INTEGER_USABLE_BITS - 1) ) - 1)
 
+#define CRANK_VM_CHARACTER_USABLE_BITS (CRANK_VM_OOP_BITS - CRANK_VM_OOP_TAG_CHARACTER_SHIFT)
+#define CRANK_VM_CHARACTER_MAX_VALUE (+( ((intptr_t)1)<< CRANK_VM_SMALL_INTEGER_USABLE_BITS) - 1)
+
 static inline int
 crankvm_oop_isPointer(crankvm_oop_t oop)
 {
@@ -85,6 +88,12 @@ static inline int
 crankvm_oop_isIntegerInSmallIntegerRange(intptr_t integer)
 {
     return CRANK_VM_SMALL_INTEGER_MIN_VALUE <= integer && integer <= CRANK_VM_SMALL_INTEGER_MAX_VALUE;
+}
+
+static inline int
+crankvm_oop_isIntegerInCharacterRange(intptr_t integer)
+{
+    return 0 <= integer && integer <= CRANK_VM_CHARACTER_MAX_VALUE;
 }
 
 static inline intptr_t
@@ -485,6 +494,10 @@ LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_getClassWithPointerIndex(crankv
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_getClass(crankvm_context_t *context, crankvm_oop_t object);
 LIB_CRANK_VM_EXPORT int crankvm_object_isClass(crankvm_context_t *context, crankvm_oop_t object);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forInteger(crankvm_context_t *context, intptr_t integer);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forInteger32(crankvm_context_t *context, int32_t integer);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forUInteger32(crankvm_context_t *context, uint32_t integer);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forInteger64(crankvm_context_t *context, int64_t integer);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forUInteger64(crankvm_context_t *context, uint64_t integer);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forBoolean(crankvm_context_t *context, int boolean);
 LIB_CRANK_VM_EXPORT void crankvm_object_prettyPrintTo(crankvm_context_t *context, crankvm_oop_t object, FILE *output);
 

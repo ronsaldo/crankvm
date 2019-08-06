@@ -117,6 +117,21 @@ crankvm_primitive_getSmallIntegerValue(crankvm_primitive_context_t *primitiveCon
     return crankvm_oop_decodeSmallInteger(oop);
 }
 
+static inline intptr_t
+crankvm_primitive_getCharacterValue(crankvm_primitive_context_t *primitiveContext, crankvm_oop_t oop)
+{
+    if(crankvm_primitive_hasFailed(primitiveContext))
+        return 0;
+
+    if(!crankvm_oop_isCharacter(oop))
+    {
+        crankvm_primitive_failWithCode(primitiveContext, CRANK_VM_PRIMITIVE_ERROR_BAD_ARGUMENT);
+        return 0;
+    }
+
+    return crankvm_oop_decodeCharacter(oop);
+}
+
 static inline void
 crankvm_primitive_returnSmallInteger(crankvm_primitive_context_t *primitiveContext, intptr_t integer)
 {
@@ -135,6 +150,12 @@ static inline void
 crankvm_primitive_returnBoolean(crankvm_primitive_context_t *primitiveContext, int boolean)
 {
     return crankvm_primitive_successWithResult(primitiveContext, crankvm_object_forBoolean(primitiveContext->context, boolean));
+}
+
+static inline void
+crankvm_primitive_returnCharacter(crankvm_primitive_context_t *primitiveContext, uint32_t character)
+{
+    return crankvm_primitive_successWithResult(primitiveContext, crankvm_oop_encodeCharacter(character));
 }
 
 static inline void

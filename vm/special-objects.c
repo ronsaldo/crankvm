@@ -140,6 +140,14 @@ crankvm_Behavior_basicNewWithVariable(crankvm_context_t *context, crankvm_Behavi
     return crankvm_Behavior_initializeAllocateObject(context, behavior, header);
 }
 
+// Array
+LIB_CRANK_VM_EXPORT crankvm_Array_t *
+crankvm_Array_create(crankvm_context_t *context, size_t variableSize)
+{
+    crankvm_Behavior_t *classArray = context->roots.specialObjectsArray->classArray;
+    return (crankvm_Array_t*)crankvm_Behavior_basicNewWithVariable(context, classArray, variableSize);
+}
+
 // BlockClosure
 LIB_CRANK_VM_EXPORT crankvm_BlockClosure_t *
 crankvm_BlockClosure_create(crankvm_context_t *context, uintptr_t argumentCount, size_t copiedValueCount)

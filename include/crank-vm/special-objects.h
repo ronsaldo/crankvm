@@ -543,6 +543,8 @@ LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_Behavior_getName(crankvm_context_t *co
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_Behavior_basicNew(crankvm_context_t *context, crankvm_Behavior_t *behavior);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_Behavior_basicNewWithVariable(crankvm_context_t *context, crankvm_Behavior_t *behavior, size_t variableSize);
 
+LIB_CRANK_VM_EXPORT crankvm_Array_t *crankvm_Array_create(crankvm_context_t *context, size_t variableSize);
+
 LIB_CRANK_VM_EXPORT crankvm_BlockClosure_t *crankvm_BlockClosure_create(crankvm_context_t *context, uintptr_t argumentCount, size_t copiedValueCount);
 
 LIB_CRANK_VM_EXPORT crankvm_MethodContext_t *crankvm_MethodContext_create(crankvm_context_t *context, int largeFrame);

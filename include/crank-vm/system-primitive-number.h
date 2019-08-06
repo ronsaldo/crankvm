@@ -3,6 +3,7 @@
 
 typedef enum crankvm_system_primitive_number_e
 {
+    /* Small integer. */
     CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_INTEGER_ADD = 1,
     CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_INTEGER_SUBTRACT = 2,
     CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_INTEGER_LESS_THAN = 3,
@@ -21,14 +22,146 @@ typedef enum crankvm_system_primitive_number_e
     CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_INTEGER_BIT_XOR = 16,
     CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_INTEGER_BIT_SHIFT = 17,
 
+    /* This must always fail. */
     CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_PRIMITIVE_FAIL = 19,
 
-    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_OBJECT_AT_PUT = 61,
+    /* Large integer primitives. */
+/*
+(20 primitiveRemLargeIntegers)
+(21 primitiveAddLargeIntegers)
+(22 primitiveSubtractLargeIntegers)
+(23 primitiveLessThanLargeIntegers)
+(24 primitiveGreaterThanLargeIntegers)
+(25 primitiveLessOrEqualLargeIntegers)
+(26 primitiveGreaterOrEqualLargeIntegers)
+(27 primitiveEqualLargeIntegers)
+(28 primitiveNotEqualLargeIntegers)
+(29 primitiveMultiplyLargeIntegers)
+(30 primitiveDivideLargeIntegers)
+(31 primitiveModLargeIntegers)
+(32 primitiveDivLargeIntegers)
+(33 primitiveQuoLargeIntegers)
+(34 primitiveBitAndLargeIntegers)
+(35 primitiveBitOrLargeIntegers)
+(36 primitiveBitXorLargeIntegers)
+(37 primitiveBitShiftLargeIntegers)
+*/
+
+    /* Boxed float primitives */
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_AT = 38,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_AT_PUT = 39,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_AS_FLOAT = 40,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_ADD = 41,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_SUBTRACT = 42,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_LESS_THAN = 43,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_GREATER_THAN = 44,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_LESS_OR_EQUAL = 45,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_GREATER_OR_EQUAL = 46,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_EQUAL = 47,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_NOT_EQUAL = 48,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_MULTIPLY = 49,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_DIVIDE = 50,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_TRUNCATED = 51,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_FRACTIONAL_PART = 52,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_EXPONENT = 53,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_TIMES_TWO_POWER = 54,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_SQUARE_ROOT = 55,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_SINE = 56,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_ARCTAN = 57,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_LOG_N = 58,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_FLOAT_EXP = 59,
+
+    /* Subscript primitives. */
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_AT = 60,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_AT_PUT = 61,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SIZE = 62,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_STRING_AT = 63,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_STRING_AT_PUT = 64,
+
+    /* Storage management primitives. */
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_OBJECT_AT = 68, /* CompiledCode literals. */
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_OBJECT_AT_PUT = 69, /* CompiledCode literals. */
     CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_OBJECT_NEW = 70,
     CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_OBJECT_NEW_WITH_ARG = 71,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_OBJECT_ARRAY_BECOME_ONE_WAY = 72,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_INST_VAR_AT = 73,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_INST_VAR_AT_PUT = 74,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_IDENTITY_HASH = 75,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_STORE_STACKP = 76,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SOME_INSTANCE = 77,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_NEXT_INSTANCE = 78,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_NEW_METHOD = 79,
 
+    /*"Control Primitives (80-89)"
+    (80 primitiveFail)					"Blue Book: primitiveBlockCopy"
+    (81 primitiveFail)					"Blue Book: primitiveValue"
+    (82 primitiveFail)					"Blue Book: primitiveValueWithArgs"
+    (83 primitivePerform)
+    (84 primitivePerformWithArgs)
+    (85 primitiveSignal)
+    (86 primitiveWait)
+    (87 primitiveResume)
+    (88 primitiveSuspend)
+    (89 primitiveFlushCache)*/
+
+/*    "Input/Output Primitives (90-109)"
+    (90 primitiveMousePoint)
+    (91 primitiveTestDisplayDepth)			"Blue Book: primitiveCursorLocPut"
+    (92 primitiveSetDisplayMode)				"Blue Book: primitiveCursorLink"
+    (93 primitiveInputSemaphore)
+    (94 primitiveGetNextEvent)				"Blue Book: primitiveSampleInterval"
+    (95 primitiveInputWord)
+    (96 primitiveFail)	"primitiveCopyBits"
+    (97 primitiveSnapshot)
+    (98 primitiveStoreImageSegment)
+    (99 primitiveLoadImageSegment)
+    (100 primitivePerformInSuperclass)		"Blue Book: primitiveSignalAtTick"
+    (101 primitiveBeCursor)
+    (102 primitiveBeDisplay)
+    (103 primitiveScanCharacters)
+    (104 primitiveFail)	"primitiveDrawLoop"
+    (105 primitiveStringReplace)
+    (106 primitiveScreenSize)
+    (107 primitiveMouseButtons)
+    (108 primitiveKbdNext)
+    (109 primitiveKbdPeek)*/
+
+    /* System primitives */
+/*
+(110 primitiveIdentical)
+(111 primitiveClass)
+(112 primitiveBytesLeft)
+(113 primitiveQuit)
+(114 primitiveExitToDebugger)
+(115 primitiveChangeClass)					"Blue Book: primitiveOopsLeft"
+(116 primitiveFlushCacheByMethod)
+(117 primitiveExternalCall)
+(118 primitiveDoPrimitiveWithArgs)
+(119 primitiveFlushCacheBySelector)
+    "Squeak 2.2 and earlier use 119.  Squeak 2.3 and later use 116.
+    Both are supported for backward compatibility."
+*/
     CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_OBJECT_IDENTITY_EQUALS = 110,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_OBJECT_CLASS = 111,
     CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_OBJECT_IDENTITY_NOT_EQUALS = 169,
+
+/*    "SpurMemoryManager primitives"
+(170 primitiveAsCharacter)
+(171 primitiveImmediateAsInteger)
+(172 primitiveFetchNextMourner)
+(173 primitiveSlotAt)		"c.f. (73 primitiveInstVarAt)"
+(174 primitiveSlotAtPut)	"c.f. (74 primitiveInstVarAtPut)"
+(175 primitiveBehaviorHash)
+(176 primitiveMaxIdentityHash)
+(177 primitiveAllInstances)
+(178 primitiveAllObjects)
+(179 primitiveFail) "reserved for primitiveAllInstancesOfAny"
+(180 primitiveGrowMemoryByAtLeast)
+(181 primitiveSizeInBytesOfInstance)
+(182 primitiveSizeInBytes)
+(183 primitiveIsPinned)
+(184 primitivePin)*/
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_AS_CHARACTER = 170,
 
     CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_BLOCK_VALUE_ARGS0 = 201,
     CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_BLOCK_VALUE_ARGS1 = 202,
@@ -41,6 +174,27 @@ typedef enum crankvm_system_primitive_number_e
 
     CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_BLOCK_VALUE_ARGS_FIRST = CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_BLOCK_VALUE_ARGS0,
     CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_BLOCK_VALUE_ARGS_LAST = CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_BLOCK_VALUE_ARGS4,
+
+    /* Small float primitives. */
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SMALL_FLOAT_ADD = 541,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SMALL_FLOAT_SUBTRACT = 542,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SMALL_FLOAT_LESS_THAN = 543,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SMALL_FLOAT_GREATER_THAN = 544,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SMALL_FLOAT_LESS_OR_EQUAL = 545,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SMALL_FLOAT_GREATER_OR_EQUAL = 546,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SMALL_FLOAT_EQUAL = 547,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SMALL_FLOAT_NOT_EQUAL = 548,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SMALL_FLOAT_MULTIPLY = 549,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SMALL_FLOAT_DIVIDE = 550,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SMALL_FLOAT_TRUNCATED = 551,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SMALL_FLOAT_FRACTIONAL_PART = 552,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SMALL_FLOAT_EXPONENT = 553,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SMALL_FLOAT_TIMES_TWO_POWER = 554,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SMALL_FLOAT_SQUARE_ROOT = 555,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SMALL_FLOAT_SINE = 556,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SMALL_FLOAT_ARCTAN = 557,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SMALL_FLOAT_LOG_N = 558,
+    CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SMALL_FLOAT_EXP = 559,
 
 } crankvm_system_primitive_number_t;
 

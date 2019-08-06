@@ -160,6 +160,21 @@ crankvm_primitive_integerBitXor(crankvm_primitive_context_t *primitiveContext)
 void
 crankvm_primitive_integerBitShift(crankvm_primitive_context_t *primitiveContext)
 {
+    // FIXME: Implement this properly.
+    intptr_t left = crankvm_primitive_getSmallIntegerValue(primitiveContext, crankvm_primitive_getReceiver(primitiveContext));
+    intptr_t right = crankvm_primitive_getSmallIntegerValue(primitiveContext, crankvm_primitive_getArgument(primitiveContext, 0));
+    if(!crankvm_primitive_hasFailed(primitiveContext))
+    {
+        printf("Bit shift %ld %ld\n", left, right);
+        if(right < 0)
+        {
+            return crankvm_primitive_returnInteger(primitiveContext, left >> (-right));
+        }
+        else if(right > 0)
+        {
+            return crankvm_primitive_returnInteger(primitiveContext, left << right);
+        }
+    }
     printf("TODO: crankvm_primitive_integerBitShift\n");
     abort();
 }

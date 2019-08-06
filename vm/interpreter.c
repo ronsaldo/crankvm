@@ -127,7 +127,6 @@ crankvm_interpreter_getTemporary(crankvm_interpreter_state_t *self, size_t index
 LIB_CRANK_VM_EXPORT inline crankvm_oop_t
 crankvm_interpreter_setTemporary(crankvm_interpreter_state_t *self, size_t index, crankvm_oop_t value)
 {
-    printf("index %zu\n", index);
     assert(crankvm_interpreter_checkTemporaryIndex(self, index) == CRANK_VM_OK);
     self->objects.methodContext->stackSlots[index] = value;
     return CRANK_VM_OK;
@@ -148,10 +147,33 @@ crankvm_interpreter_getLiteral(crankvm_interpreter_state_t *self, size_t index)
     return self->objects.method->literals[index];
 }
 
+static inline crankvm_oop_t
+crankvm_interpreter_getMethodClass(crankvm_interpreter_state_t *self)
+{
+    crankvm_oop_t methodClassAssociationOop = self->objects.method->literals[self->codeHeader.numberOfLiterals - 1];
+    if(crankvm_oop_isNil(self->context, methodClassAssociationOop))
+        return methodClassAssociationOop;
+
+    crankvm_Association_t *methodClassAssociation = (crankvm_Association_t*)methodClassAssociationOop;
+    return methodClassAssociation->value;
+}
+
+static inline crankvm_oop_t
+crankvm_interpreter_getSuperClass(crankvm_interpreter_state_t *self)
+{
+    crankvm_oop_t methodClass = crankvm_interpreter_getMethodClass(self);
+    if(crankvm_oop_isNil(self->context, methodClass))
+        return methodClass;
+
+    crankvm_Behavior_t *methodClassBehavior = (crankvm_Behavior_t*)methodClass;
+    return (crankvm_oop_t)methodClassBehavior->superclass;
+}
+
 // </editor-fold> Interpreter public interface
 
 #define UNIMPLEMENTED() \
 do { \
+    fflush(stdout); \
     fprintf(stderr, "Unimplemented function %s in %s:%d\n", __PRETTY_FUNCTION__, __FILE__, __LINE__); \
     abort(); \
 } while(false)
@@ -360,15 +382,11 @@ crankvm_interpreter_activateMethodWithArguments(crankvm_interpreter_state_t *sel
 }
 
 static crankvm_error_t
-crankvm_interpreter_sendTo(crankvm_interpreter_state_t *self, int expectedArgumentCount, crankvm_oop_t selector)
+crankvm_interpreter_sendToWithLookupFrom(crankvm_interpreter_state_t *self, int expectedArgumentCount, crankvm_oop_t selector, crankvm_oop_t receiverClass)
 {
     checkSizeToPop(expectedArgumentCount + 1);
 
-    crankvm_oop_t receiver = crankvm_interpreter_stackOopAt(self, expectedArgumentCount);
-    printf("Send #%.*s to %p\n", crankvm_string_printf_arg(selector), (void*)receiver);
-
-    // Get the receiver class.
-    crankvm_oop_t receiverClass = crankvm_object_getClass(_theContext, receiver);
+    // Check the receiver class.
     if(crankvm_oop_isNil(_theContext, receiverClass))
         return CRANK_VM_ERROR_RECEIVER_CLASS_NIL;
 
@@ -389,6 +407,32 @@ crankvm_interpreter_sendTo(crankvm_interpreter_state_t *self, int expectedArgume
 
     // Create the context, and invoke the method.
     return crankvm_interpreter_activateMethodWithArguments(self, expectedArgumentCount, methodOop);
+}
+
+static crankvm_error_t
+crankvm_interpreter_sendTo(crankvm_interpreter_state_t *self, int expectedArgumentCount, crankvm_oop_t selector)
+{
+    checkSizeToPop(expectedArgumentCount + 1);
+
+    crankvm_oop_t receiver = crankvm_interpreter_stackOopAt(self, expectedArgumentCount);
+    printf("Send #%.*s to %p\n", crankvm_string_printf_arg(selector), (void*)receiver);
+
+    // Get the receiver class.
+    crankvm_oop_t receiverClass = crankvm_object_getClass(_theContext, receiver);
+    return crankvm_interpreter_sendToWithLookupFrom(self, expectedArgumentCount, selector, receiverClass);
+}
+
+static crankvm_error_t
+crankvm_interpreter_superSendTo(crankvm_interpreter_state_t *self, int expectedArgumentCount, crankvm_oop_t selector)
+{
+    checkSizeToPop(expectedArgumentCount + 1);
+
+    crankvm_oop_t receiver = crankvm_interpreter_stackOopAt(self, expectedArgumentCount);
+    printf("Super Send #%.*s to %p\n", crankvm_string_printf_arg(selector), (void*)receiver);
+
+    // Get the super class.
+    crankvm_oop_t superClass = crankvm_interpreter_getSuperClass(self);
+    return crankvm_interpreter_sendToWithLookupFrom(self, expectedArgumentCount, selector, superClass);
 }
 
 static crankvm_error_t
@@ -725,25 +769,81 @@ crankvm_interpreter_bytecodeBlockReturnTop(crankvm_interpreter_state_t *self)
 static crankvm_error_t
 crankvm_interpreter_bytecodeExtendedPush(crankvm_interpreter_state_t *self)
 {
-    UNIMPLEMENTED();
+    unsigned int descriptor = crankvm_interpreter_fetchByte(self);
+    crankvm_interpreter_fetchNextInstruction(self);
+
+    unsigned int variableType = descriptor >> 6;
+    unsigned int variableIndex = descriptor & 63;
+    switch(variableType)
+    {
+    case 0: return crankvm_interpreter_pushReceiverVariable(self, variableIndex);
+    case 1: return crankvm_interpreter_pushTemporary(self, variableIndex);
+    case 2: return crankvm_interpreter_pushLiteral(self, variableIndex);
+    case 3: return crankvm_interpreter_pushLiteralVariable(self, variableIndex);
+    default: abort();
+    }
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodeExtendedStoreMaybePop(crankvm_interpreter_state_t *self, bool pop)
+{
+    unsigned int descriptor = crankvm_interpreter_fetchByte(self);
+    crankvm_interpreter_fetchNextInstruction(self);
+
+    unsigned int variableType = descriptor >> 6;
+    unsigned int variableIndex = descriptor & 63;
+
+    checkSizeToPop(1);
+    crankvm_oop_t value = pop ? crankvm_interpreter_popOop(self) : crankvm_interpreter_stackOopAt(self, 0);
+
+    switch(variableType)
+    {
+    case 0:
+        // Receiver variable
+        checkReceiverSlotIndex(variableIndex);
+        crankvm_interpreter_setReceiverSlot(self, variableIndex, value);
+        break;
+    case 1:
+        // Temporary
+        checkTemporaryIndex(variableIndex);
+        crankvm_interpreter_setTemporary(self, variableIndex, value);
+        break;
+    case 2:
+        return CRANK_VM_ERROR_ILLEGAL_STORE;
+    case 3:
+        // Literal variable
+        {
+            checkLiteralIndex(variableIndex);
+            crankvm_Association_t *literalVariable = (crankvm_Association_t *)crankvm_interpreter_getLiteral(self, variableIndex);
+            literalVariable->value = value;
+        }
+        break;
+    default: abort();
+    }
+
+    return CRANK_VM_OK;
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeExtendedStore(crankvm_interpreter_state_t *self)
 {
-    UNIMPLEMENTED();
+    return crankvm_interpreter_bytecodeExtendedStoreMaybePop(self, false);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeExtendedPopAndStore(crankvm_interpreter_state_t *self)
 {
-    UNIMPLEMENTED();
+    return crankvm_interpreter_bytecodeExtendedStoreMaybePop(self, true);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeSingleExtendedSend(crankvm_interpreter_state_t *self)
 {
-    UNIMPLEMENTED();
+    unsigned int descriptor = crankvm_interpreter_fetchByte(self);
+    unsigned int selectorIndex = descriptor & 31;
+    unsigned int argumentCount = descriptor >> 5;
+    checkLiteralIndex(selectorIndex);
+    return crankvm_interpreter_sendTo(self, argumentCount, crankvm_interpreter_getLiteral(self, selectorIndex));
 }
 
 static crankvm_error_t
@@ -755,13 +855,21 @@ crankvm_interpreter_bytecodeDoubleExtendedDoAnything(crankvm_interpreter_state_t
 static crankvm_error_t
 crankvm_interpreter_bytecodeSingleExtendedSuperSend(crankvm_interpreter_state_t *self)
 {
-    UNIMPLEMENTED();
+    unsigned int descriptor = crankvm_interpreter_fetchByte(self);
+    unsigned int selectorIndex = descriptor & 31;
+    unsigned int argumentCount = descriptor >> 5;
+    checkLiteralIndex(selectorIndex);
+    return crankvm_interpreter_superSendTo(self, argumentCount, crankvm_interpreter_getLiteral(self, selectorIndex));
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeSecondExtendedSend(crankvm_interpreter_state_t *self)
 {
-    UNIMPLEMENTED();
+    unsigned int descriptor = crankvm_interpreter_fetchByte(self);
+    unsigned int selectorIndex = descriptor & 63;
+    unsigned int argumentCount = descriptor >> 6;
+    checkLiteralIndex(selectorIndex);
+    return crankvm_interpreter_sendTo(self, argumentCount, crankvm_interpreter_getLiteral(self, selectorIndex));
 }
 
 static crankvm_error_t
@@ -791,9 +899,27 @@ crankvm_interpreter_bytecodePushThisContext(crankvm_interpreter_state_t *self)
 }
 
 static crankvm_error_t
-crankvm_interpreter_bytecodePushOrPopNewArray(crankvm_interpreter_state_t *self)
+crankvm_interpreter_bytecodePushNewArray(crankvm_interpreter_state_t *self)
 {
-    UNIMPLEMENTED();
+    unsigned int size = crankvm_interpreter_fetchByte(self);
+    bool poppingValues = size > 127;
+    size &= 127;
+    fetchNextInstruction();
+    checkSizeToPop(size);
+
+    /* Allocate the array. */
+    crankvm_Array_t *array = crankvm_Array_create(_theContext, size);
+
+    /* Copy the values to the array. */
+    for(unsigned int i = 0; i < size; ++i)
+        array->slots[i] = crankvm_interpreter_stackOopAt(self, i);
+    /* Pop the values from the stack. */
+    if(poppingValues)
+        self->stackPointer -= size;
+
+    /* Push the array. */
+    pushOop((crankvm_oop_t)array);
+    return CRANK_VM_OK;
 }
 
 static crankvm_error_t
@@ -817,21 +943,68 @@ crankvm_interpreter_bytecodeCallPrimitive(crankvm_interpreter_state_t *self)
 }
 
 static crankvm_error_t
+crankvm_interpreter_pushRemoteTemporaryElementInVector(crankvm_interpreter_state_t *self, unsigned int remoteTemporaryIndex, unsigned int remoteVectorIndex)
+{
+    checkTemporaryIndex(remoteVectorIndex);
+
+    // Fetch the remote vector.
+    crankvm_oop_t remoteVectorOop = crankvm_interpreter_getTemporary(self, remoteVectorIndex);
+    if(crankvm_oop_isNil(_theContext, remoteVectorOop))
+        return CRANK_VM_ERROR_NIL_REMOTE_VECTOR;
+
+    // Fetch the element in the remote vector.
+    // TODO: Check the remote temporary index bounds.
+    crankvm_Array_t *remoteVector = (crankvm_Array_t *)remoteVectorOop;
+    pushOop(remoteVector->slots[remoteTemporaryIndex]);
+    return CRANK_VM_OK;
+}
+
+static crankvm_error_t
+crankvm_interpreter_storeRemoteTemporaryElementInVectorMaybePop(crankvm_interpreter_state_t *self, unsigned int remoteTemporaryIndex, unsigned int remoteVectorIndex, bool popElement)
+{
+    checkTemporaryIndex(remoteVectorIndex);
+    checkSizeToPop(1);
+
+    // Fetch the remote vector.
+    crankvm_oop_t remoteVectorOop = crankvm_interpreter_getTemporary(self, remoteVectorIndex);
+    if(crankvm_oop_isNil(_theContext, remoteVectorOop))
+        return CRANK_VM_ERROR_NIL_REMOTE_VECTOR;
+
+    // Store the element in the remote vector.
+    crankvm_oop_t value = popElement ? popOop() : crankvm_interpreter_stackOopAt(self, 0);
+    crankvm_Array_t *remoteVector = (crankvm_Array_t *)remoteVectorOop;
+    remoteVector->slots[remoteTemporaryIndex] = value;
+    return CRANK_VM_OK;
+}
+
+static crankvm_error_t
 crankvm_interpreter_bytecodePushRemoteTempLong(crankvm_interpreter_state_t *self)
 {
-    UNIMPLEMENTED();
+    unsigned int remoteTemporaryIndex = crankvm_interpreter_fetchByte(self);
+    unsigned int remoteVectorIndex = crankvm_interpreter_fetchByte(self);
+    crankvm_interpreter_fetchNextInstruction(self);
+
+    return crankvm_interpreter_pushRemoteTemporaryElementInVector(self, remoteTemporaryIndex, remoteVectorIndex);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodeStoreRemoteTempLong(crankvm_interpreter_state_t *self)
 {
-    UNIMPLEMENTED();
+    unsigned int remoteTemporaryIndex = crankvm_interpreter_fetchByte(self);
+    unsigned int remoteVectorIndex = crankvm_interpreter_fetchByte(self);
+    crankvm_interpreter_fetchNextInstruction(self);
+
+    return crankvm_interpreter_storeRemoteTemporaryElementInVectorMaybePop(self, remoteTemporaryIndex, remoteVectorIndex, false);
 }
 
 static crankvm_error_t
 crankvm_interpreter_bytecodePopStoreRemoteTempLong(crankvm_interpreter_state_t *self)
 {
-    UNIMPLEMENTED();
+    unsigned int remoteTemporaryIndex = crankvm_interpreter_fetchByte(self);
+    unsigned int remoteVectorIndex = crankvm_interpreter_fetchByte(self);
+    crankvm_interpreter_fetchNextInstruction(self);
+
+    return crankvm_interpreter_storeRemoteTemporaryElementInVectorMaybePop(self, remoteTemporaryIndex, remoteVectorIndex, true);
 }
 
 static crankvm_error_t
@@ -843,13 +1016,13 @@ crankvm_interpreter_bytecodePushClosureCopyCopiedValues(crankvm_interpreter_stat
     size_t copiedValueCount = numCopiedAndArgs >> 4;
     size_t argumentCount = numCopiedAndArgs & 0xF;
 
-    // Check the size to pop.
-    checkSizeToPop(copiedValueCount);
-
     // Copy the start pc and fetch the next instruction.
     intptr_t blockStartPC = self->pc;
     self->pc += blockSize;
     fetchNextInstruction();
+
+    // Check the size to pop.
+    checkSizeToPop(copiedValueCount);
 
     // Create the block closure.
     crankvm_BlockClosure_t *blockClosure = crankvm_BlockClosure_create(_theContext, argumentCount, copiedValueCount);
