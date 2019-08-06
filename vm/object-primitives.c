@@ -8,6 +8,8 @@ CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_stringAt, CRANK_VM_SYSTEM
 CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_stringAtPut, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_STRING_AT_PUT)
 
 // StorageManagement Primitives (68-79)
+CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_objectAt, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_OBJECT_AT)
+CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_objectAtPut, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_OBJECT_AT_PUT)
 CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_new, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_OBJECT_NEW)
 CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_newWithArg, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_OBJECT_NEW_WITH_ARG)
 
@@ -17,7 +19,7 @@ CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_identityNotEquals, CRANK_
 CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_class, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_OBJECT_CLASS)
 
 CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_asCharacter, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_AS_CHARACTER)
-
+CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_immediateAsInteger, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_IMMEDIATE_AS_INTEGER)
 
 static crankvm_oop_t
 crankvm_primitive_Object_at(crankvm_primitive_context_t *primitiveContext, crankvm_oop_t object, intptr_t index)
@@ -280,6 +282,34 @@ crankvm_primitive_size(crankvm_primitive_context_t *primitiveContext)
 
 // StorageManagement Primitives (68-79)
 void
+crankvm_primitive_objectAt(crankvm_primitive_context_t *primitiveContext)
+{
+    crankvm_oop_t receiver = crankvm_primitive_getStackAt(primitiveContext, 1);
+    intptr_t index = crankvm_primitive_getSmallIntegerValue(primitiveContext, crankvm_primitive_getStackAt(primitiveContext, 0));
+    if(crankvm_primitive_hasFailed(primitiveContext))
+        return crankvm_primitive_fail(primitiveContext);
+
+    // Check the format.
+    crankvm_object_format_t format = crankvm_oop_getFormat(receiver);
+    if(format < CRANK_VM_OBJECT_FORMAT_COMPILED_METHOD)
+        return crankvm_primitive_failWithCode(primitiveContext, CRANK_VM_PRIMITIVE_ERROR_BAD_RECEIVER);
+
+    // Check the index.
+    crankvm_CompiledCode_t *compiledCode = (crankvm_CompiledCode_t*)receiver;
+    intptr_t objectSize = 1 + crankvm_CompiledCode_getNumberOfLiterals(primitiveContext->context, compiledCode);
+    if(index < 1 || index > objectSize)
+        return crankvm_primitive_failWithCode(primitiveContext, CRANK_VM_PRIMITIVE_ERROR_BAD_INDEX);
+
+    return crankvm_primitive_returnOop(primitiveContext, compiledCode->literals[index - /* One based, method header. */ 2]);
+}
+
+void
+crankvm_primitive_objectAtPut(crankvm_primitive_context_t *primitiveContext)
+{
+    abort();
+}
+
+void
 crankvm_primitive_new(crankvm_primitive_context_t *primitiveContext)
 {
     crankvm_oop_t receiver = crankvm_primitive_getReceiver(primitiveContext);
@@ -362,6 +392,28 @@ crankvm_primitive_asCharacter(crankvm_primitive_context_t *primitiveContext)
     else if(crankvm_oop_isCharacter(receiver))
     {
         return crankvm_primitive_returnOop(primitiveContext, receiver);
+    }
+
+    return crankvm_primitive_failWithCode(primitiveContext, CRANK_VM_PRIMITIVE_ERROR_BAD_RECEIVER);
+
+}
+
+void
+crankvm_primitive_immediateAsInteger(crankvm_primitive_context_t *primitiveContext)
+{
+    crankvm_oop_t receiver = crankvm_primitive_getStackAt(primitiveContext, 0);
+    if(crankvm_oop_isSmallInteger(receiver))
+    {
+        return crankvm_primitive_returnOop(primitiveContext, receiver);
+    }
+    else if(crankvm_oop_isCharacter(receiver))
+    {
+        return crankvm_primitive_returnOop(primitiveContext, crankvm_oop_encodeSmallInteger(crankvm_oop_decodeCharacter(receiver)));
+    }
+    else if(crankvm_oop_isSmallFloat(receiver))
+    {
+        fprintf(stderr, "Unimplemented crankvm_primitive_immediateAsInteger for SmallFloats");
+        abort();
     }
 
     return crankvm_primitive_failWithCode(primitiveContext, CRANK_VM_PRIMITIVE_ERROR_BAD_RECEIVER);

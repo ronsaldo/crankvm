@@ -6,4 +6,10 @@
 void crankvm_primitive_primitiveFail(crankvm_primitive_context_t *primitiveContext);
 void crankvm_primitive_primitiveFailUnexistent(crankvm_primitive_context_t *primitiveContext);
 
+void crankvm_primitive_systemPrimitive_snapshot(crankvm_primitive_context_t *primitiveContext);
+void crankvm_primitive_systemPrimitive_quit(crankvm_primitive_context_t *primitiveContext);
+void crankvm_primitive_systemPrimitive_exitToDebugger(crankvm_primitive_context_t *primitiveContext);
+
+void crankvm_primitive_systemPrimitive_vmParameter(crankvm_primitive_context_t *primitiveContext);
+
 #endif //CRANK_VM_SYSTEM_PRIMITIVES_H

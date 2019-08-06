@@ -140,6 +140,16 @@ crankvm_interpreter_checkLiteralIndex(crankvm_interpreter_state_t *self, size_t 
     return CRANK_VM_OK;
 }
 
+static inline crankvm_error_t
+crankvm_interpreter_checkLiteralVariableIndex(crankvm_interpreter_state_t *self, size_t index)
+{
+    if(index >= self->codeHeader.numberOfLiterals)
+        return CRANK_VM_ERROR_OUT_OF_BOUNDS;
+    if(crankvm_oop_isNil(self->context, self->objects.method->literals[index]))
+        return CRANK_VM_ERROR_INVALID_PARAMETER;
+    return CRANK_VM_OK;
+}
+
 LIB_CRANK_VM_EXPORT inline crankvm_oop_t
 crankvm_interpreter_getLiteral(crankvm_interpreter_state_t *self, size_t index)
 {
@@ -201,6 +211,11 @@ do { \
 
 #define checkLiteralIndex(index) do { \
     crankvm_error_t error = crankvm_interpreter_checkLiteralIndex(self, index); \
+    if(error) return error; \
+} while(0)
+
+#define checkLiteralVariableIndex(index) do { \
+    crankvm_error_t error = crankvm_interpreter_checkLiteralVariableIndex(self, index); \
     if(error) return error; \
 } while(0)
 
@@ -564,10 +579,8 @@ crankvm_interpreter_pushLiteral(crankvm_interpreter_state_t *self, unsigned int 
 static crankvm_error_t
 crankvm_interpreter_pushLiteralVariable(crankvm_interpreter_state_t *self, unsigned int literalIndex)
 {
-    checkLiteralIndex(literalIndex);
+    checkLiteralVariableIndex(literalIndex);
     crankvm_Association_t *literalVariable = (crankvm_Association_t *)crankvm_interpreter_getLiteral(self, literalIndex);
-    if(crankvm_object_isNil(_theContext, literalVariable))
-        return CRANK_VM_ERROR_INVALID_PARAMETER;
 
     //printf("pushLiteralVariable #%.*s\n", crankvm_string_printf_arg(literalVariable->key));
     pushOop(literalVariable->value);
@@ -813,7 +826,7 @@ crankvm_interpreter_bytecodeExtendedStoreMaybePop(crankvm_interpreter_state_t *s
     case 3:
         // Literal variable
         {
-            checkLiteralIndex(variableIndex);
+            checkLiteralVariableIndex(variableIndex);
             crankvm_Association_t *literalVariable = (crankvm_Association_t *)crankvm_interpreter_getLiteral(self, variableIndex);
             literalVariable->value = value;
         }
@@ -849,7 +862,71 @@ crankvm_interpreter_bytecodeSingleExtendedSend(crankvm_interpreter_state_t *self
 static crankvm_error_t
 crankvm_interpreter_bytecodeDoubleExtendedDoAnything(crankvm_interpreter_state_t *self)
 {
-    UNIMPLEMENTED();
+    uint8_t secondByte = crankvm_interpreter_fetchByte(self);
+    uint8_t thirdByte = crankvm_interpreter_fetchByte(self);
+    int operationType = secondByte >> 5;
+
+    // Extended message sends.
+    if(operationType <= 1)
+    {
+        unsigned int argumentCount = secondByte & 31;
+        unsigned int selectorIndex = thirdByte;
+        checkLiteralIndex(selectorIndex);
+        if(operationType == 0)
+            return crankvm_interpreter_sendTo(self, argumentCount, crankvm_interpreter_getLiteral(self, selectorIndex));
+        else
+            return crankvm_interpreter_superSendTo(self, argumentCount, crankvm_interpreter_getLiteral(self, selectorIndex));
+    }
+
+    crankvm_interpreter_fetchNextInstruction(self);
+    switch(operationType)
+    {
+    case 0:
+    case 1:
+        abort(); // Should not get here
+        break;
+    case 2:
+        return crankvm_interpreter_pushReceiverVariable(self, thirdByte);
+    case 3:
+        return crankvm_interpreter_pushLiteral(self, thirdByte);
+    case 4:
+        return crankvm_interpreter_pushLiteralVariable(self, thirdByte);
+    case 5:
+        {
+            checkSizeToPop(1);
+            crankvm_interpreter_setReceiverSlot(self, thirdByte, crankvm_interpreter_stackOopAt(self, 0));
+            return CRANK_VM_OK;
+        }
+    case 6:
+        {
+            checkSizeToPop(1);
+            crankvm_interpreter_setReceiverSlot(self, thirdByte, popOop());
+            return CRANK_VM_OK;
+        }
+    case 7:
+        {
+            checkSizeToPop(1);
+            unsigned int literalVariableIndex = thirdByte;
+            checkLiteralVariableIndex(literalVariableIndex);
+            crankvm_Association_t *literalVariable = (crankvm_Association_t *)crankvm_interpreter_getLiteral(self, literalVariableIndex);
+            literalVariable->value = crankvm_interpreter_stackOopAt(self, 0);
+            return CRANK_VM_OK;
+        }
+    default:
+        return CRANK_VM_ERROR_ILLEGAL_INSTRUCTION;
+    }
+
+/*
+	opType = 5 ifTrue: [top := self internalStackTop.
+			^ self storePointer: byte3 ofObject: receiver withValue: top].
+	opType = 6
+		ifTrue: [top := self internalStackTop.
+			self internalPop: 1.
+			^ self storePointer: byte3 ofObject: receiver withValue: top].
+	opType = 7
+		ifTrue: [top := self internalStackTop.
+			^ self storePointer: ValueIndex ofObject: (self literal: byte3) withValue: top]
+*/
 }
 
 static crankvm_error_t
