@@ -113,7 +113,6 @@ typedef struct crankvm_ClassDescription_s
 {
     crankvm_Behavior_t baseClass;
 
-    crankvm_oop_t instanceVariables;
     crankvm_oop_t organization;
 } crankvm_ClassDescription_t;
 
@@ -141,6 +140,8 @@ typedef struct crankvm_Metaclass_s
 
     // We only care about the name, for debugging purposes
 } crankvm_Metaclass_t;
+
+#define crankvm_Metaclass_instSize 6
 
 /**
  * ClassTablePage layout
@@ -532,6 +533,8 @@ crankvm_Behavior_getInstanceSize(crankvm_Behavior_t *behavior)
 LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_CompiledCode_validate(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode);
 LIB_CRANK_VM_EXPORT size_t crankvm_CompiledCode_getNumberOfLiterals(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_CompiledCode_getSelector(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_CompiledCode_getClass(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_CompiledCode_getClassName(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode);
 LIB_CRANK_VM_EXPORT size_t crankvm_CompiledCode_getFirstPC(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode);
 LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_CompiledCode_checkActivationWithArgumentCount(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode, int argumentCount, crankvm_compiled_code_header_t *parsedCompiledCodeHeader, int *parsedPrimitiveNumber, uintptr_t *parsedInitialPC);
 

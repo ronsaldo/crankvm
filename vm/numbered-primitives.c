@@ -154,7 +154,7 @@ const crankvm_primitive_function_t crankvm_numberedPrimitiveTable[255] = {
     NULL,
     NULL,
     NULL,
-    NULL,
+    crankvm_primitive_shallowCopy,
     NULL,
     NULL,
     NULL,

@@ -54,5 +54,6 @@ void crankvm_heap_iterator_advance(crankvm_heap_iterator_t *iterator);
 crankvm_object_header_t *crankvm_heap_objectPointerAfter(crankvm_heap_t *heap, crankvm_object_header_t *object);
 
 crankvm_object_header_t *crankvm_heap_newObject(crankvm_context_t *context, crankvm_object_format_t format, size_t fixedSize, size_t variableSize);
+crankvm_object_header_t *crankvm_heap_shallowCopy(crankvm_context_t *context, crankvm_object_header_t *sourceObject);
 
 #endif //CRANK_VM_HEAP_H

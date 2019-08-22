@@ -56,10 +56,9 @@ crankvm_heap_allocate(crankvm_heap_t *heap, size_t size)
     return crankvm_heap_segment_allocate(&heap->firstSegment, size);
 }
 
-crankvm_object_header_t *
-crankvm_heap_newObject(crankvm_context_t *context, crankvm_object_format_t format, size_t fixedSize, size_t variableSize)
+static crankvm_object_header_t *
+crankvm_heap_newObjectWithLogicalSize(crankvm_context_t *context, crankvm_object_format_t format, size_t logicalSize)
 {
-    size_t logicalSize = fixedSize + variableSize;
     size_t slotCount = 0;
 
     crankvm_object_format_t instanceFormat = format;
@@ -134,7 +133,42 @@ crankvm_heap_newObject(crankvm_context_t *context, crankvm_object_format_t forma
             slots[i] = nilOop;
     }
 
+    return allocatedObject;    
+}
+
+crankvm_object_header_t *
+crankvm_heap_shallowCopy(crankvm_context_t *context, crankvm_object_header_t *sourceObject)
+{
+    size_t slotCount = crankvm_object_header_getSlotCount(sourceObject);
+    crankvm_object_format_t format = crankvm_object_header_getObjectFormat(sourceObject);
+    unsigned int classIndex = crankvm_object_header_getClassIndex(sourceObject);
+    
+    // Make sure there is at least one physical slot, for storing a forwarding pointer.
+    size_t actualSlotCount = slotCount;
+    if(actualSlotCount == 0)
+        actualSlotCount = 1;
+
+    size_t bodySize = actualSlotCount * sizeof(crankvm_oop_t);
+    size_t headerSize = sizeof(crankvm_object_header_t);
+    if(actualSlotCount >= 255)
+        headerSize += sizeof(crankvm_object_header_t);
+
+    size_t objectSize = headerSize + bodySize;
+    crankvm_object_header_t *allocatedObject = (crankvm_object_header_t*)crankvm_heap_allocate(&context->heap, objectSize);
+    memcpy(allocatedObject, sourceObject, objectSize);
+    memset(allocatedObject, 0, sizeof(crankvm_object_header_t));
+    
+    crankvm_object_header_setSlotCount(allocatedObject, slotCount);
+    crankvm_object_header_setObjectFormat(allocatedObject, format);
+    crankvm_object_header_setClassIndex(allocatedObject, classIndex);
+
     return allocatedObject;
+}
+
+crankvm_object_header_t *
+crankvm_heap_newObject(crankvm_context_t *context, crankvm_object_format_t format, size_t fixedSize, size_t variableSize)
+{
+    return crankvm_heap_newObjectWithLogicalSize(context, format, fixedSize + variableSize);
 }
 
 static crankvm_error_t

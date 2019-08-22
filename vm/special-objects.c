@@ -40,6 +40,17 @@ crankvm_CompiledCode_getSelector(crankvm_context_t *context, crankvm_CompiledCod
     return additionalState->selector;
 }
 
+LIB_CRANK_VM_EXPORT crankvm_oop_t
+crankvm_CompiledCode_getClass(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode)
+{
+    crankvm_compiled_code_header_t header;
+    crankvm_object_decodeCompiledCodeHeader(&header, compiledCode->codeHeader);
+
+    size_t classBindingLiteralIndex = header.numberOfLiterals - 1;
+    crankvm_oop_t classBinding = compiledCode->literals[classBindingLiteralIndex];
+    return ((crankvm_Association_t*)classBinding)->value;
+}
+
 LIB_CRANK_VM_EXPORT size_t
 crankvm_CompiledCode_getFirstPC(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode)
 {

@@ -22,4 +22,6 @@ void crankvm_primitive_class(crankvm_primitive_context_t *primitiveContext);
 void crankvm_primitive_asCharacter(crankvm_primitive_context_t *primitiveContext);
 void crankvm_primitive_immediateAsInteger(crankvm_primitive_context_t *primitiveContext);
 
+void crankvm_primitive_shallowCopy(crankvm_primitive_context_t *primitiveContext);
+
 #endif //CRANK_VM_OBJECT_PRIMITIVES_H

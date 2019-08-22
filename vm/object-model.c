@@ -131,6 +131,55 @@ crankvm_object_isClass(crankvm_context_t *context, crankvm_oop_t object)
     return crankvm_object_getClassWithPointerIndex(context, classIndex, object) == object;
 }
 
+LIB_CRANK_VM_EXPORT int
+crankvm_object_isMetaclassInstance(crankvm_context_t *context, crankvm_oop_t object)
+{
+    if(!crankvm_oop_isPointer(object))
+        return 0;
+        
+    crankvm_object_header_t *header = (crankvm_object_header_t*)object;
+    if(crankvm_object_header_getSlotCount(header) < crankvm_Metaclass_instSize)
+        return 0;
+
+    if(crankvm_object_header_getObjectFormat(header) > CRANK_VM_OBJECT_FORMAT_VARIABLE_SIZE_IVARS)
+        return 0;
+    
+    if(!crankvm_object_isClass(context, object))
+        return 0;
+    
+    crankvm_Metaclass_t *metaClass = (crankvm_Metaclass_t*)object;
+    crankvm_oop_t thisClassOop = (crankvm_oop_t)metaClass->thisClass;
+    return crankvm_object_getClass(context, thisClassOop) == object;
+}
+
+LIB_CRANK_VM_EXPORT int
+crankvm_object_isClassWithName(crankvm_context_t *context, crankvm_oop_t object)
+{
+    return crankvm_object_isMetaclassInstance(context, crankvm_object_getClass(context, object));
+}
+
+LIB_CRANK_VM_EXPORT crankvm_oop_t
+crankvm_class_getNameOop(crankvm_context_t *context, crankvm_oop_t classOop)
+{
+    if(crankvm_oop_isNil(context, classOop))
+        return classOop;
+    
+    if(crankvm_object_isMetaclassInstance(context, classOop))
+    {
+        printf("Get metaclass name\n");
+        return ((crankvm_Metaclass_t*)classOop)->thisClass->name;
+    }
+    else if(crankvm_object_isClassWithName(context, classOop))
+    {
+        printf("Get class name\n");
+        return ((crankvm_Class_t*)classOop)->name;
+    }
+    else
+    {
+        return crankvm_specialObject_nil(context);
+    }
+}
+
 LIB_CRANK_VM_EXPORT crankvm_oop_t
 crankvm_object_forInteger(crankvm_context_t *context, intptr_t integer)
 {

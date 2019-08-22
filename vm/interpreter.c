@@ -266,8 +266,15 @@ crankvm_interpreter_fetchMethodContext(crankvm_interpreter_state_t *self)
 
     // Get the pointer into the instructions.
     crankvm_oop_t methodSelector = crankvm_CompiledCode_getSelector(_theContext, self->objects.method);
-    printf("\tmethod: %p [#%.*s]pc: %d stackp: %d\n",
+    
+    crankvm_oop_t methodClass = crankvm_CompiledCode_getClass(_theContext, self->objects.method);
+    crankvm_oop_t methodClassName = crankvm_class_getNameOop(_theContext, methodClass);
+    const char *classType = crankvm_object_isMetaclassInstance(_theContext, methodClass) ? " class" : "";
+    
+    printf("\tmethod: %p [%.*s%s >> #%.*s]pc: %d stackp: %d\n",
         (void*)self->objects.method,
+        crankvm_string_printf_arg(methodClassName),
+        classType,
         crankvm_string_printf_arg(methodSelector),
         (int)self->pc, (int)self->stackPointer);
     --self->pc; // Zero based PC.

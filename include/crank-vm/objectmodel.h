@@ -493,6 +493,9 @@ LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_getClassWithIndex(crankvm_conte
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_getClassWithPointerIndex(crankvm_context_t *context, uint32_t classIndex, crankvm_oop_t object);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_getClass(crankvm_context_t *context, crankvm_oop_t object);
 LIB_CRANK_VM_EXPORT int crankvm_object_isClass(crankvm_context_t *context, crankvm_oop_t object);
+LIB_CRANK_VM_EXPORT int crankvm_object_isMetaclassInstance(crankvm_context_t *context, crankvm_oop_t object);
+LIB_CRANK_VM_EXPORT int crankvm_object_isClassWithName(crankvm_context_t *context, crankvm_oop_t object);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_class_getNameOop(crankvm_context_t *context, crankvm_oop_t object);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forInteger(crankvm_context_t *context, intptr_t integer);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forInteger32(crankvm_context_t *context, int32_t integer);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forUInteger32(crankvm_context_t *context, uint32_t integer);

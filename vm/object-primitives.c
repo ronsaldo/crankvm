@@ -21,6 +21,9 @@ CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_class, CRANK_VM_SYSTEM_PR
 CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_asCharacter, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_AS_CHARACTER)
 CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_immediateAsInteger, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_IMMEDIATE_AS_INTEGER)
 
+// Object cloning
+CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_shallowCopy, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_SHALLOW_COPY)
+
 static crankvm_oop_t
 crankvm_primitive_Object_at(crankvm_primitive_context_t *primitiveContext, crankvm_oop_t object, intptr_t index)
 {
@@ -307,6 +310,21 @@ void
 crankvm_primitive_objectAtPut(crankvm_primitive_context_t *primitiveContext)
 {
     abort();
+}
+
+void
+crankvm_primitive_shallowCopy(crankvm_primitive_context_t *primitiveContext)
+{
+    crankvm_oop_t receiver = crankvm_primitive_getReceiver(primitiveContext);
+    if(crankvm_primitive_hasFailed(primitiveContext))
+        return crankvm_primitive_fail(primitiveContext);
+    
+    // Return non pointers by value.
+    if(!crankvm_oop_isPointer(receiver))
+        return crankvm_primitive_returnOop(primitiveContext, receiver);
+        
+    crankvm_object_header_t *clonedObject = crankvm_heap_shallowCopy(crankvm_primitive_getContext(primitiveContext), (crankvm_object_header_t*)receiver);
+    return crankvm_primitive_returnOop(primitiveContext, (crankvm_oop_t)clonedObject);
 }
 
 void
