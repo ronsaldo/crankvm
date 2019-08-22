@@ -1,6 +1,6 @@
 #include "context-internal.h"
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 crankvm_error_t crankvm_interpret(crankvm_context_t *context, crankvm_MethodContext_t *methodContext, crankvm_oop_t *returnValue);
 

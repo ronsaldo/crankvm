@@ -3,7 +3,7 @@
 #include "read-memory-stream.h"
 #include "heap.h"
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 static crankvm_error_t
 crankvm_image_readFormatFromIntegerAndLittleEndianness(crankvm_image_format_t *format, uint32_t integer, bool littleEndian)
