@@ -17,6 +17,8 @@ void crankvm_primitive_objectAtPut(crankvm_primitive_context_t *primitiveContext
 void crankvm_primitive_new(crankvm_primitive_context_t *primitiveContext);
 void crankvm_primitive_newWithArg(crankvm_primitive_context_t *primitiveContext);
 
+void crankvm_primitive_identityHash(crankvm_primitive_context_t *primitiveContext);
+void crankvm_primitive_behaviorHash(crankvm_primitive_context_t *primitiveContext);
 void crankvm_primitive_class(crankvm_primitive_context_t *primitiveContext);
 
 void crankvm_primitive_asCharacter(crankvm_primitive_context_t *primitiveContext);

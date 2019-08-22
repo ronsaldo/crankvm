@@ -489,6 +489,7 @@ LIB_CRANK_VM_EXPORT size_t crankvm_object_header_getSmalltalkSize(crankvm_object
 typedef struct crankvm_context_s crankvm_context_t;
 
 LIB_CRANK_VM_EXPORT uintptr_t crankvm_object_getIdentityHash(crankvm_context_t *context, crankvm_oop_t object);
+LIB_CRANK_VM_EXPORT uintptr_t crankvm_object_getBehaviorHash(crankvm_context_t *context, crankvm_oop_t object);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_getClassWithIndex(crankvm_context_t *context, uint32_t classIndex, crankvm_oop_t object);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_getClassWithPointerIndex(crankvm_context_t *context, uint32_t classIndex, crankvm_oop_t object);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_getClass(crankvm_context_t *context, crankvm_oop_t object);

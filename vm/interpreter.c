@@ -266,11 +266,11 @@ crankvm_interpreter_fetchMethodContext(crankvm_interpreter_state_t *self)
 
     // Get the pointer into the instructions.
     crankvm_oop_t methodSelector = crankvm_CompiledCode_getSelector(_theContext, self->objects.method);
-    
+
     crankvm_oop_t methodClass = crankvm_CompiledCode_getClass(_theContext, self->objects.method);
     crankvm_oop_t methodClassName = crankvm_class_getNameOop(_theContext, methodClass);
     const char *classType = crankvm_object_isMetaclassInstance(_theContext, methodClass) ? " class" : "";
-    
+
     printf("\tmethod: %p [%.*s%s >> #%.*s]pc: %d stackp: %d\n",
         (void*)self->objects.method,
         crankvm_string_printf_arg(methodClassName),
@@ -336,6 +336,8 @@ crankvm_interpreter_returnOopFromMethod(crankvm_interpreter_state_t *self, crank
 {
     if(crankvm_oop_isNil(self->context, self->objects.methodContext->closureOrNil))
         return crankvm_interpreter_localMethodReturnOop(self, oop);
+
+    // This is a non local return.
 
     UNIMPLEMENTED();
 }

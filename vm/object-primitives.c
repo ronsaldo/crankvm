@@ -16,6 +16,9 @@ CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_newWithArg, CRANK_VM_SYST
 CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_identityEquals, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_OBJECT_IDENTITY_EQUALS)
 CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_identityNotEquals, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_OBJECT_IDENTITY_NOT_EQUALS)
 
+CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_identityHash, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_IDENTITY_HASH)
+CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_behaviorHash, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_BEHAVIOR_HASH)
+
 CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_class, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_OBJECT_CLASS)
 
 CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_asCharacter, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_AS_CHARACTER)
@@ -34,10 +37,25 @@ crankvm_primitive_Object_at(crankvm_primitive_context_t *primitiveContext, crank
         crankvm_primitive_failWithCode(primitiveContext, CRANK_VM_PRIMITIVE_ERROR_BAD_INDEX);
         return crankvm_specialObject_nil(primitiveContext->context);
     }
+
+    crankvm_object_format_t format = crankvm_oop_getFormat(object);
+    if(format == CRANK_VM_OBJECT_FORMAT_VARIABLE_SIZE_IVARS)
+    {
+        // Add the fixed instance size.
+        crankvm_Behavior_t *behavior = (crankvm_Behavior_t*)crankvm_object_getClass(crankvm_primitive_getContext(primitiveContext), object);
+        index += crankvm_Behavior_getInstanceSize(behavior);
+
+        // Check the bounds again
+        if(index > objectSize)
+        {
+            crankvm_primitive_failWithCode(primitiveContext, CRANK_VM_PRIMITIVE_ERROR_BAD_INDEX);
+            return crankvm_specialObject_nil(primitiveContext->context);
+        }
+    }
+
     --index;
 
     // Check the format
-    crankvm_object_format_t format = crankvm_oop_getFormat(object);
     crankvm_oop_t *slots = (crankvm_oop_t *) (object + sizeof(crankvm_object_header_t));
     if(format < CRANK_VM_OBJECT_FORMAT_INDEXABLE_64)
         return slots[index];
@@ -84,10 +102,25 @@ crankvm_primitive_Object_atPut(crankvm_primitive_context_t *primitiveContext, cr
         crankvm_primitive_failWithCode(primitiveContext, CRANK_VM_PRIMITIVE_ERROR_BAD_INDEX);
         return crankvm_specialObject_nil(primitiveContext->context);
     }
+
+    crankvm_object_format_t format = crankvm_oop_getFormat(object);
+    if(format == CRANK_VM_OBJECT_FORMAT_VARIABLE_SIZE_IVARS)
+    {
+        // Add the fixed instance size.
+        crankvm_Behavior_t *behavior = (crankvm_Behavior_t*)crankvm_object_getClass(crankvm_primitive_getContext(primitiveContext), object);
+        index += crankvm_Behavior_getInstanceSize(behavior);
+
+        // Check the bounds again
+        if(index > objectSize)
+        {
+            crankvm_primitive_failWithCode(primitiveContext, CRANK_VM_PRIMITIVE_ERROR_BAD_INDEX);
+            return crankvm_specialObject_nil(primitiveContext->context);
+        }
+    }
+
     --index;
 
     // Check the format
-    crankvm_object_format_t format = crankvm_oop_getFormat(object);
     crankvm_oop_t *slots = (crankvm_oop_t *) (object + sizeof(crankvm_object_header_t));
     if(format < CRANK_VM_OBJECT_FORMAT_INDEXABLE_64)
         return slots[index] = value;
@@ -318,11 +351,11 @@ crankvm_primitive_shallowCopy(crankvm_primitive_context_t *primitiveContext)
     crankvm_oop_t receiver = crankvm_primitive_getReceiver(primitiveContext);
     if(crankvm_primitive_hasFailed(primitiveContext))
         return crankvm_primitive_fail(primitiveContext);
-    
+
     // Return non pointers by value.
     if(!crankvm_oop_isPointer(receiver))
         return crankvm_primitive_returnOop(primitiveContext, receiver);
-        
+
     crankvm_object_header_t *clonedObject = crankvm_heap_shallowCopy(crankvm_primitive_getContext(primitiveContext), (crankvm_object_header_t*)receiver);
     return crankvm_primitive_returnOop(primitiveContext, (crankvm_oop_t)clonedObject);
 }
@@ -386,6 +419,28 @@ crankvm_primitive_identityNotEquals(crankvm_primitive_context_t *primitiveContex
     crankvm_oop_t right = crankvm_primitive_getArgument(primitiveContext, 0);
     if(!crankvm_primitive_hasFailed(primitiveContext))
         crankvm_primitive_returnBoolean(primitiveContext, left != right);
+}
+
+void
+crankvm_primitive_identityHash(crankvm_primitive_context_t *primitiveContext)
+{
+    crankvm_oop_t receiver = crankvm_primitive_getReceiver(primitiveContext);
+    if(!crankvm_oop_isPointer(receiver))
+        return crankvm_primitive_fail(primitiveContext);
+
+    uint32_t identityHash = crankvm_object_getIdentityHash(crankvm_primitive_getContext(primitiveContext), receiver);
+    crankvm_primitive_returnOop(primitiveContext, crankvm_oop_encodeSmallInteger(identityHash));
+}
+
+void
+crankvm_primitive_behaviorHash(crankvm_primitive_context_t *primitiveContext)
+{
+    crankvm_oop_t receiver = crankvm_primitive_getReceiver(primitiveContext);
+    if(!crankvm_oop_isPointer(receiver))
+        return crankvm_primitive_fail(primitiveContext);
+
+    uint32_t identityHash = crankvm_object_getBehaviorHash(crankvm_primitive_getContext(primitiveContext), receiver);
+    crankvm_primitive_returnOop(primitiveContext, crankvm_oop_encodeSmallInteger(identityHash));
 }
 
 void

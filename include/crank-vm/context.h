@@ -73,4 +73,5 @@ crankvm_oop_isNilOrNull(crankvm_context_t *context, crankvm_oop_t oop)
     return crankvm_object_isNilOrNull(context, (void*)oop);
 }
 
+
 #endif //_CRANK_VM_CONTEXT_H_
