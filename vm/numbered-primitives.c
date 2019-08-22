@@ -123,7 +123,7 @@ const crankvm_primitive_function_t crankvm_numberedPrimitiveTable[255] = {
     crankvm_primitive_systemPrimitive_exitToDebugger,
     NULL,
     NULL,
-    NULL,
+    crankvm_primitive_callExternalPrimitive,
     NULL,
     NULL,
     NULL,

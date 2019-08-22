@@ -183,12 +183,10 @@ crankvm_class_getNameOop(crankvm_context_t *context, crankvm_oop_t classOop)
 
     if(crankvm_object_isMetaclassInstance(context, classOop))
     {
-        printf("Get metaclass name\n");
         return ((crankvm_Metaclass_t*)classOop)->thisClass->name;
     }
     else if(crankvm_object_isClassWithName(context, classOop))
     {
-        printf("Get class name\n");
         return ((crankvm_Class_t*)classOop)->name;
     }
     else

@@ -233,7 +233,7 @@
         "opcode" : 199
     },
 
-    "specialMessageBlockCopy" : {
+    "specialMessageIdentityNotEqual" : {
         "opcode" : 200
     },
 

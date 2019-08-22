@@ -5,8 +5,40 @@
 #include <crank-vm/error.h>
 #include <crank-vm/special-objects.h>
 #include <crank-vm/context.h>
+#include <string.h>
 
 typedef struct crankvm_interpreter_state_s crankvm_interpreter_state_t;
+
+#define CRANK_UNIMPLEMENTED() \
+do { \
+    fflush(stdout); \
+    fprintf(stderr, "Unimplemented function %s in %s:%d\n", __PRETTY_FUNCTION__, __FILE__, __LINE__); \
+    abort(); \
+} while(0)
+
+// Interpreter accessors.
+LIB_CRANK_VM_EXPORT crankvm_context_t *crankvm_interpreter_getContext(crankvm_interpreter_state_t *self);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_getReceiver(crankvm_interpreter_state_t *self);
+LIB_CRANK_VM_EXPORT crankvm_MethodContext_t *crankvm_interpreter_getMethodContext(crankvm_interpreter_state_t *self);
+LIB_CRANK_VM_EXPORT crankvm_CompiledCode_t *crankvm_interpreter_getCompiledCode(crankvm_interpreter_state_t *self);
+
+// Oop stack access
+LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_interpreter_pushOop(crankvm_interpreter_state_t *self, crankvm_oop_t oop);
+LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_interpreter_checkSizeToPop(crankvm_interpreter_state_t *self, intptr_t size);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_popOop(crankvm_interpreter_state_t *self);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_stackOopAt(crankvm_interpreter_state_t *self, intptr_t size);
+
+LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_interpreter_checkReceiverSlotIndex(crankvm_interpreter_state_t *self, size_t index);
+LIB_CRANK_VM_EXPORT crankvm_oop_t *crankvm_interpreter_getReceiverSlots(crankvm_interpreter_state_t *self);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_getReceiverSlot(crankvm_interpreter_state_t *self, size_t index);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_setReceiverSlot(crankvm_interpreter_state_t *self, size_t index, crankvm_oop_t value);
+
+LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_interpreter_checkTemporaryIndex(crankvm_interpreter_state_t *self, size_t index);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_getTemporary(crankvm_interpreter_state_t *self, size_t index);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_setTemporary(crankvm_interpreter_state_t *self, size_t index, crankvm_oop_t value);
+
+LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_interpreter_checkLiteralIndex(crankvm_interpreter_state_t *self, size_t index);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_getLiteral(crankvm_interpreter_state_t *self, size_t index);
 
 typedef struct crankvm_primitive_context_s
 {
@@ -25,6 +57,18 @@ typedef struct crankvm_primitive_context_s
 } crankvm_primitive_context_t;
 
 typedef void (*crankvm_primitive_function_t) (crankvm_primitive_context_t *primitiveContext);
+
+typedef struct crankvm_plugin_primitive_s
+{
+    const char *name;
+    crankvm_primitive_function_t function;
+} crankvm_plugin_primitive_t;
+
+typedef struct crankvm_plugin_s
+{
+    const char *name;
+    const crankvm_plugin_primitive_t primitives[];
+} crankvm_plugin_t;
 
 static inline void
 crankvm_primitive_success(crankvm_primitive_context_t *primitiveContext)
@@ -132,6 +176,32 @@ crankvm_primitive_getCharacterValue(crankvm_primitive_context_t *primitiveContex
     return crankvm_oop_decodeCharacter(oop);
 }
 
+static inline size_t
+crankvm_primitive_getSizeValue(crankvm_primitive_context_t *primitiveContext, crankvm_oop_t oop)
+{
+    intptr_t value = crankvm_primitive_getSmallIntegerValue(primitiveContext, oop);
+    if(value < 0)
+    {
+        crankvm_primitive_failWithCode(primitiveContext, CRANK_VM_PRIMITIVE_ERROR_BAD_ARGUMENT);
+        return 0;
+    }
+
+    return value;
+}
+
+static inline uint8_t *
+crankvm_primitive_getBytesPointer(crankvm_primitive_context_t *primitiveContext, crankvm_oop_t oop)
+{
+    if(!crankvm_oop_isPointer(oop))
+    {
+        crankvm_primitive_failWithCode(primitiveContext, CRANK_VM_PRIMITIVE_ERROR_BAD_ARGUMENT);
+        return 0;
+    }
+
+    // TODO: Validate the object format.
+    return (uint8_t *)(oop + sizeof(crankvm_object_header_t));
+}
+
 static inline void
 crankvm_primitive_returnSmallInteger(crankvm_primitive_context_t *primitiveContext, intptr_t integer)
 {
@@ -188,28 +258,38 @@ crankvm_primitive_finishReplacingMethodContext(crankvm_primitive_context_t *prim
     primitiveContext->roots.primitiveMethodContext = newMethodContext;
 }
 
-// Interpreter accessors.
-LIB_CRANK_VM_EXPORT crankvm_context_t *crankvm_interpreter_getContext(crankvm_interpreter_state_t *self);
-LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_getReceiver(crankvm_interpreter_state_t *self);
-LIB_CRANK_VM_EXPORT crankvm_MethodContext_t *crankvm_interpreter_getMethodContext(crankvm_interpreter_state_t *self);
-LIB_CRANK_VM_EXPORT crankvm_CompiledCode_t *crankvm_interpreter_getCompiledCode(crankvm_interpreter_state_t *self);
+static inline crankvm_oop_t
+crankvm_primitive_getLiteral(crankvm_primitive_context_t *primitiveContext, size_t literalIndex)
+{
+    if(crankvm_interpreter_checkLiteralIndex(primitiveContext->interpreter, literalIndex))
+    {
+        crankvm_primitive_fail(primitiveContext);
+        return 0;
+    }
+    return crankvm_interpreter_getLiteral(primitiveContext->interpreter, literalIndex);
+}
 
-// Oop stack access
-LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_interpreter_pushOop(crankvm_interpreter_state_t *self, crankvm_oop_t oop);
-LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_interpreter_checkSizeToPop(crankvm_interpreter_state_t *self, intptr_t size);
-LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_popOop(crankvm_interpreter_state_t *self);
-LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_stackOopAt(crankvm_interpreter_state_t *self, intptr_t size);
+static inline char *
+crankvm_primitive_stringToCString(crankvm_primitive_context_t *primitiveContext, crankvm_oop_t oop)
+{
+    if(!crankvm_oop_isPointer(oop))
+    {
+        crankvm_primitive_fail(primitiveContext);
+        return 0;
+    }
 
-LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_interpreter_checkReceiverSlotIndex(crankvm_interpreter_state_t *self, size_t index);
-LIB_CRANK_VM_EXPORT crankvm_oop_t *crankvm_interpreter_getReceiverSlots(crankvm_interpreter_state_t *self);
-LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_getReceiverSlot(crankvm_interpreter_state_t *self, size_t index);
-LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_setReceiverSlot(crankvm_interpreter_state_t *self, size_t index, crankvm_oop_t value);
+    crankvm_object_header_t *objectHeader = (crankvm_object_header_t*)oop;
+    if(crankvm_object_header_getObjectFormat(objectHeader) < CRANK_VM_OBJECT_FORMAT_INDEXABLE_8)
+    {
+        crankvm_primitive_fail(primitiveContext);
+        return 0;
+    }
 
-LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_interpreter_checkTemporaryIndex(crankvm_interpreter_state_t *self, size_t index);
-LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_getTemporary(crankvm_interpreter_state_t *self, size_t index);
-LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_setTemporary(crankvm_interpreter_state_t *self, size_t index, crankvm_oop_t value);
-
-LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_interpreter_checkLiteralIndex(crankvm_interpreter_state_t *self, size_t index);
-LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_getLiteral(crankvm_interpreter_state_t *self, size_t index);
+    size_t size = crankvm_object_header_getSmalltalkSize(objectHeader);
+    char *allocated = (char*)crankvm_context_malloc(primitiveContext->context, size + 1);
+    memcpy(allocated, objectHeader + 1, size);
+    allocated[size] = 0;
+    return allocated;
+}
 
 #endif //CRANK_VM_INTERPRETER_H

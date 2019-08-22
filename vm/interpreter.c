@@ -302,12 +302,8 @@ crankvm_interpreter_storeMethodContextState(crankvm_interpreter_state_t *self)
 }
 
 static crankvm_error_t
-crankvm_interpreter_localMethodReturnOop(crankvm_interpreter_state_t *self, crankvm_oop_t returnValue)
+crankvm_interpreter_returnOopActivatingContext(crankvm_interpreter_state_t *self, crankvm_oop_t returnValue, crankvm_MethodContext_t *returnContext)
 {
-    // Store back some of the pointers.
-    crankvm_interpreter_storeMethodContextState(self);
-
-    crankvm_MethodContext_t *returnContext = (crankvm_MethodContext_t*)self->objects.methodContext->baseClass.sender;
 
     // Clear the sender of the context.
     self->objects.methodContext->baseClass.sender = crankvm_specialObject_nil(self->context);
@@ -332,14 +328,58 @@ crankvm_interpreter_localMethodReturnOop(crankvm_interpreter_state_t *self, cran
 }
 
 static crankvm_error_t
-crankvm_interpreter_returnOopFromMethod(crankvm_interpreter_state_t *self, crankvm_oop_t oop)
+crankvm_interpreter_localMethodReturnOop(crankvm_interpreter_state_t *self, crankvm_oop_t returnValue)
+{
+    // Store back some of the pointers.
+    crankvm_interpreter_storeMethodContextState(self);
+
+    crankvm_MethodContext_t *returnContext = (crankvm_MethodContext_t*)self->objects.methodContext->baseClass.sender;
+    return crankvm_interpreter_returnOopActivatingContext(self, returnValue, returnContext);
+}
+
+
+
+static crankvm_error_t
+crankvm_interpreter_returnOopFromMethod(crankvm_interpreter_state_t *self, crankvm_oop_t returnValue)
 {
     if(crankvm_oop_isNil(self->context, self->objects.methodContext->closureOrNil))
-        return crankvm_interpreter_localMethodReturnOop(self, oop);
+        return crankvm_interpreter_localMethodReturnOop(self, returnValue);
 
     // This is a non local return.
+    crankvm_BlockClosure_t *closure =(crankvm_BlockClosure_t*)self->objects.methodContext->closureOrNil;
+    crankvm_oop_t targetContext = (crankvm_oop_t)closure->outerContext->baseClass.sender;
+    crankvm_oop_t nilValue = crankvm_specialObject_nil(_theContext);
+    crankvm_oop_t unwindContext = nilValue;
+    crankvm_oop_t currentContext = self->objects.methodContext->baseClass.sender;
+    while(currentContext != nilValue && currentContext != targetContext)
+    {
+        crankvm_MethodContext_t *testContext = (crankvm_MethodContext_t*)currentContext;
+        if(crankvm_MethodContext_isUnwindContext(_theContext, testContext))
+        {
+            unwindContext = (crankvm_oop_t)testContext;
+            break;
+        }
+        currentContext = testContext->baseClass.sender;
+    }
 
-    UNIMPLEMENTED();
+    // Did we find an unwind context.
+    if(unwindContext != nilValue)
+    {
+        // Unwind
+        printf("TODO: implement block unwind\n");
+        abort();
+    }
+
+    // Did we get to the home context?.
+    if(currentContext != targetContext)
+    {
+        // Cannot return.
+        printf("TODO: implement block cannot return\n");
+        abort();
+    }
+
+    // We found the target home context.
+    return crankvm_interpreter_returnOopActivatingContext(self, returnValue, (crankvm_MethodContext_t*)targetContext);
 }
 
 static crankvm_error_t
@@ -1295,7 +1335,12 @@ crankvm_interpreter_bytecodeSpecialMessageAtEnd(crankvm_interpreter_state_t *sel
 static crankvm_error_t
 crankvm_interpreter_bytecodeSpecialMessageIdentityEqual(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->identityEquals);
+    fetchNextInstruction();
+    checkSizeToPop(2);
+    crankvm_oop_t left = popOop();
+    crankvm_oop_t right = popOop();
+    pushOop(left == right ? _theContext->roots.trueOop : _theContext->roots.falseOop);
+    return CRANK_VM_OK;
 }
 
 static crankvm_error_t
@@ -1305,9 +1350,14 @@ crankvm_interpreter_bytecodeSpecialMessageClass(crankvm_interpreter_state_t *sel
 }
 
 static crankvm_error_t
-crankvm_interpreter_bytecodeSpecialMessageBlockCopy(crankvm_interpreter_state_t *self)
+crankvm_interpreter_bytecodeSpecialMessageIdentityNotEqual(crankvm_interpreter_state_t *self)
 {
-    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->blockCopy);
+    fetchNextInstruction();
+    checkSizeToPop(2);
+    crankvm_oop_t left = popOop();
+    crankvm_oop_t right = popOop();
+    pushOop(left != right ? _theContext->roots.trueOop : _theContext->roots.falseOop);
+    return CRANK_VM_OK;
 }
 
 static crankvm_error_t

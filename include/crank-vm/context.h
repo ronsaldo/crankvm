@@ -55,6 +55,17 @@ LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_context_run(crankvm_context_t *conte
  */
 LIB_CRANK_VM_EXPORT int crankvm_object_isNil(crankvm_context_t *context, void *pointer);
 
+/**
+ * Allocates memory in the C heap
+ */
+LIB_CRANK_VM_EXPORT void* crankvm_context_malloc(crankvm_context_t *context, size_t size);
+
+/**
+ * Frees memory in the C heap
+ */
+LIB_CRANK_VM_EXPORT void crankvm_context_free(crankvm_context_t *context, void *pointer);
+
+
 static inline int
 crankvm_object_isNilOrNull(crankvm_context_t *context, void *pointer)
 {

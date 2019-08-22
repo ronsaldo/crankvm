@@ -19,7 +19,7 @@ crankvm_CompiledCode_validate(crankvm_context_t *context, crankvm_CompiledCode_t
 LIB_CRANK_VM_EXPORT size_t
 crankvm_CompiledCode_getNumberOfLiterals(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode)
 {
-    crankvm_compiled_code_header_t header;
+    crankvm_compiled_code_header_t header = {};
     crankvm_object_decodeCompiledCodeHeader(&header, compiledCode->codeHeader);
 
     return header.numberOfLiterals;
@@ -28,7 +28,7 @@ crankvm_CompiledCode_getNumberOfLiterals(crankvm_context_t *context, crankvm_Com
 LIB_CRANK_VM_EXPORT crankvm_oop_t
 crankvm_CompiledCode_getSelector(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode)
 {
-    crankvm_compiled_code_header_t header;
+    crankvm_compiled_code_header_t header = {};
     crankvm_object_decodeCompiledCodeHeader(&header, compiledCode->codeHeader);
 
     size_t selectorLiteralIndex = header.numberOfLiterals - 2;
@@ -43,7 +43,7 @@ crankvm_CompiledCode_getSelector(crankvm_context_t *context, crankvm_CompiledCod
 LIB_CRANK_VM_EXPORT crankvm_oop_t
 crankvm_CompiledCode_getClass(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode)
 {
-    crankvm_compiled_code_header_t header;
+    crankvm_compiled_code_header_t header = {};
     crankvm_object_decodeCompiledCodeHeader(&header, compiledCode->codeHeader);
 
     size_t classBindingLiteralIndex = header.numberOfLiterals - 1;
@@ -178,6 +178,27 @@ crankvm_MethodContext_create(crankvm_context_t *context, int largeFrame)
         return (crankvm_MethodContext_t*)crankvm_Behavior_basicNewWithVariable(context, classMethodContext, CRANK_VM_METHOD_CONTEXT_LARGE_FRAME_SIZE);
     else
         return (crankvm_MethodContext_t*)crankvm_Behavior_basicNewWithVariable(context, classMethodContext, CRANK_VM_METHOD_CONTEXT_SMALL_FRAME_SIZE);
+}
+
+LIB_CRANK_VM_EXPORT int
+crankvm_CompiledCode_parsePrimitiveNumber(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode, int *parsedPrimitiveNumber)
+{
+    crankvm_compiled_code_header_t calledHeader;
+    crankvm_error_t error = crankvm_specialObject_getCompiledCodeHeader(&calledHeader, compiledCode);
+    if(error) return 0;
+    if(!calledHeader.hasPrimitive) return 0;
+
+    uintptr_t initialPC = (calledHeader.numberOfLiterals + 1) *sizeof(crankvm_oop_t) + 1;
+    size_t compiledMethodSize = crankvm_object_header_getSmalltalkSize(&compiledCode->baseClass.objectHeader);
+    if(initialPC >= compiledMethodSize) return 0;
+
+    if(parsedPrimitiveNumber)
+    {
+        uint8_t *methodInstructions = (uint8_t*)(((crankvm_oop_t)compiledCode) + sizeof(crankvm_object_header_t));
+        *parsedPrimitiveNumber = methodInstructions[initialPC] | (methodInstructions[initialPC + 1] << 8);
+    }
+
+    return CRANK_VM_OK;
 }
 
 LIB_CRANK_VM_EXPORT crankvm_error_t
@@ -390,4 +411,16 @@ crankvm_MethodContext_validate(crankvm_context_t *context, crankvm_MethodContext
         return CRANK_VM_ERROR_INVALID_PARAMETER;
 
     return CRANK_VM_OK;
+}
+
+LIB_CRANK_VM_EXPORT int
+crankvm_MethodContext_isUnwindContext(crankvm_context_t *context, crankvm_MethodContext_t *methodContext)
+{
+    if(crankvm_object_isNilOrNull(context, methodContext))
+        return 0;
+
+    int primitiveNumber = 0;
+    if(!crankvm_CompiledCode_parsePrimitiveNumber(context, (crankvm_CompiledCode_t*)methodContext->method, &primitiveNumber))
+        return 0;
+    return primitiveNumber == 198;
 }

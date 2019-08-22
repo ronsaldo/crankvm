@@ -557,5 +557,6 @@ LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_MethodContext_createFullBlockClosure
 LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_MethodContext_createCompiledCodeMethodActivationContext(crankvm_context_t *context, crankvm_MethodContext_t **result, crankvm_CompiledCode_t *compiledCode, crankvm_oop_t receiver, int argumentCount, crankvm_oop_t *arguments);
 LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_MethodContext_createObjectMessageSendActivationContext(crankvm_context_t *context, crankvm_MethodContext_t **result, crankvm_oop_t receiver, crankvm_oop_t selector, int argumentCount, crankvm_oop_t *arguments);
 LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_MethodContext_validate(crankvm_context_t *context, crankvm_MethodContext_t *methodContext);
+LIB_CRANK_VM_EXPORT int crankvm_MethodContext_isUnwindContext(crankvm_context_t *context, crankvm_MethodContext_t *methodContext);
 
 #endif //CRANK_VM_SPECIAL_OBJECTS_H

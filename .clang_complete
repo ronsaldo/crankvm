@@ -1,3 +1,4 @@
 -Wall
 -Iinclude
+-Ivm
 -std=gnu11

@@ -4,6 +4,24 @@
 
 crankvm_error_t crankvm_interpret(crankvm_context_t *context, crankvm_MethodContext_t *methodContext, crankvm_oop_t *returnValue);
 
+/**
+ * Allocates memory in the C heap
+ */
+LIB_CRANK_VM_EXPORT void*
+crankvm_context_malloc(crankvm_context_t *context, size_t size)
+{
+    return malloc(size);
+}
+
+/**
+ * Frees memory in the C heap
+ */
+LIB_CRANK_VM_EXPORT void crankvm_context_free(crankvm_context_t *context, void *pointer)
+{
+    if(pointer)
+        free(pointer);
+}
+
 LIB_CRANK_VM_EXPORT crankvm_error_t
 crankvm_context_create(crankvm_context_t **returnContext)
 {
