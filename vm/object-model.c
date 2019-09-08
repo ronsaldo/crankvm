@@ -135,7 +135,7 @@ crankvm_object_getClass(crankvm_context_t *context, crankvm_oop_t object)
 
     // This could be a special case.
     uint32_t classIndex = crankvm_object_header_getClassIndex((crankvm_object_header_t *)object);
-    return crankvm_object_getClassWithPointerIndex(context, classIndex, object);
+    return crankvm_object_getClassWithIndex(context, classIndex, object);
 }
 
 LIB_CRANK_VM_EXPORT int
@@ -145,7 +145,7 @@ crankvm_object_isClass(crankvm_context_t *context, crankvm_oop_t object)
         return 0;
 
     uint32_t classIndex = crankvm_object_header_getIdentityHash((crankvm_object_header_t *)object);
-    return crankvm_object_getClassWithPointerIndex(context, classIndex, object) == object;
+    return crankvm_object_getClassWithIndex(context, classIndex, object) == object;
 }
 
 LIB_CRANK_VM_EXPORT int
