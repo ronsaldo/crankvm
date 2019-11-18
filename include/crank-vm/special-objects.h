@@ -83,6 +83,19 @@ typedef struct crankvm_Array_s
 } crankvm_Array_t;
 
 /**
+ * ByteArray layout
+ */
+typedef struct crankvm_ByteArray_s
+{
+    crankvm_Object_t baseClass;
+
+    uint8_t data[];
+} crankvm_ByteArray_t;
+
+typedef crankvm_ByteArray_t crankvm_ByteString_t;
+typedef crankvm_ByteArray_t crankvm_LargeInteger_t;
+
+/**
  * HashedCollection
  */
 typedef struct crankvm_MethodDictionary_s
@@ -193,6 +206,7 @@ typedef struct crankvm_InstructionStream_s
     crankvm_oop_t sender;
     crankvm_oop_t pc;
 } crankvm_InstructionStream_t;
+#define CRANK_VM_InstructionStream_InstanceFixedSize 2
 
 /**
  * MethodContext (Context in Pharo)
@@ -208,7 +222,7 @@ typedef struct crankvm_MethodContext_s
 
     crankvm_oop_t stackSlots[];
 } crankvm_MethodContext_t;
-
+#define CRANK_VM_MethodContext_InstanceFixedSize (CRANK_VM_InstructionStream_InstanceFixedSize + 4)
 /**
  * BlockClosure
  */
@@ -285,6 +299,37 @@ typedef struct crankvm_Process_s
     crankvm_oop_t effectiveProcess;
     crankvm_oop_t terminating;
 } crankvm_Process_t;
+
+/**
+ * LinkedList
+ */
+typedef struct crankvm_LinkedLink_s
+{
+    crankvm_Object_t baseClass;
+
+    crankvm_oop_t firstLink;
+    crankvm_oop_t lastLink;
+} crankvm_LinkedLink_t;
+
+
+/**
+ * Semaphore
+ */
+typedef struct crankvm_Semaphore_s
+{
+    crankvm_LinkedLink_t baseClass;
+
+    crankvm_oop_t excessSignals;
+} crankvm_Semaphore_t;
+
+/**
+ * Float
+ */
+typedef struct crankvm_Float_s
+{
+    crankvm_Object_t baseClass;
+    double value;
+} crankvm_Float_t;
 
 typedef struct crankvm_special_selector_with_arg_count_s
 {
@@ -547,6 +592,10 @@ LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_Behavior_basicNew(crankvm_context_t *c
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_Behavior_basicNewWithVariable(crankvm_context_t *context, crankvm_Behavior_t *behavior, size_t variableSize);
 
 LIB_CRANK_VM_EXPORT crankvm_Array_t *crankvm_Array_create(crankvm_context_t *context, size_t variableSize);
+LIB_CRANK_VM_EXPORT crankvm_ByteArray_t *crankvm_ByteArray_create(crankvm_context_t *context, size_t variableSize);
+LIB_CRANK_VM_EXPORT crankvm_ByteString_t *crankvm_ByteString_create(crankvm_context_t *context, size_t variableSize);
+LIB_CRANK_VM_EXPORT crankvm_LargeInteger_t *crankvm_LargeInteger_create(crankvm_context_t *context, size_t variableSize, int positive);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_LargeInteger_encodeUnormalizedValue(crankvm_context_t *context, int positive, size_t valueSize, uint8_t *value);
 
 LIB_CRANK_VM_EXPORT crankvm_BlockClosure_t *crankvm_BlockClosure_create(crankvm_context_t *context, uintptr_t argumentCount, size_t copiedValueCount);
 

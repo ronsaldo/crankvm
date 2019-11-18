@@ -16,7 +16,8 @@ crankvm_context_malloc(crankvm_context_t *context, size_t size)
 /**
  * Frees memory in the C heap
  */
-LIB_CRANK_VM_EXPORT void crankvm_context_free(crankvm_context_t *context, void *pointer)
+LIB_CRANK_VM_EXPORT void
+crankvm_context_free(crankvm_context_t *context, void *pointer)
 {
     if(pointer)
         free(pointer);

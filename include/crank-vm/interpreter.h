@@ -21,6 +21,8 @@ LIB_CRANK_VM_EXPORT crankvm_context_t *crankvm_interpreter_getContext(crankvm_in
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_interpreter_getReceiver(crankvm_interpreter_state_t *self);
 LIB_CRANK_VM_EXPORT crankvm_MethodContext_t *crankvm_interpreter_getMethodContext(crankvm_interpreter_state_t *self);
 LIB_CRANK_VM_EXPORT crankvm_CompiledCode_t *crankvm_interpreter_getCompiledCode(crankvm_interpreter_state_t *self);
+LIB_CRANK_VM_EXPORT crankvm_MethodContext_t *crankvm_interpreter_createMethodContextForMessageSendWithLookupClass(crankvm_interpreter_state_t *self, crankvm_oop_t receiver, crankvm_oop_t selector, crankvm_oop_t lookupClass, size_t argumentCount, crankvm_oop_t *arguments);
+LIB_CRANK_VM_EXPORT crankvm_MethodContext_t *crankvm_interpreter_createMethodContextForMessageSend(crankvm_interpreter_state_t *self, crankvm_oop_t receiver, crankvm_oop_t selector, size_t argumentCount, crankvm_oop_t *arguments);
 
 // Oop stack access
 LIB_CRANK_VM_EXPORT crankvm_error_t crankvm_interpreter_pushOop(crankvm_interpreter_state_t *self, crankvm_oop_t oop);
@@ -161,6 +163,32 @@ crankvm_primitive_getSmallIntegerValue(crankvm_primitive_context_t *primitiveCon
     return crankvm_oop_decodeSmallInteger(oop);
 }
 
+static inline double
+crankvm_primitive_getNumberAsFloatValue(crankvm_primitive_context_t *primitiveContext, crankvm_oop_t oop)
+{
+    if(crankvm_primitive_hasFailed(primitiveContext))
+        return 0.0;
+
+    if(crankvm_oop_isSmallFloat(oop))
+    {
+        return crankvm_oop_decodeSmallFloat(oop);
+    }
+    else if(crankvm_oop_isSmallInteger(oop))
+    {
+        return (double)crankvm_oop_decodeSmallInteger(oop);
+    }
+    else
+    {
+        double decodedFloat = 0.0f;
+        if(!crankvm_object_tryToDecodeFloat(primitiveContext->context, oop, &decodedFloat))
+        {
+            crankvm_primitive_failWithCode(primitiveContext, CRANK_VM_PRIMITIVE_ERROR_BAD_ARGUMENT);
+            return 0;
+        }
+        return decodedFloat;
+    }
+}
+
 static inline intptr_t
 crankvm_primitive_getCharacterValue(crankvm_primitive_context_t *primitiveContext, crankvm_oop_t oop)
 {
@@ -217,6 +245,38 @@ crankvm_primitive_returnInteger(crankvm_primitive_context_t *primitiveContext, i
 }
 
 static inline void
+crankvm_primitive_returnInteger32(crankvm_primitive_context_t *primitiveContext, int32_t integer)
+{
+    return crankvm_primitive_successWithResult(primitiveContext, crankvm_object_forInteger32(primitiveContext->context, integer));
+}
+
+static inline void
+crankvm_primitive_returnUInteger32(crankvm_primitive_context_t *primitiveContext, uint32_t integer)
+{
+    return crankvm_primitive_successWithResult(primitiveContext, crankvm_object_forUInteger32(primitiveContext->context, integer));
+}
+
+static inline void
+crankvm_primitive_returnInteger64(crankvm_primitive_context_t *primitiveContext, int64_t integer)
+{
+    return crankvm_primitive_successWithResult(primitiveContext, crankvm_object_forInteger64(primitiveContext->context, integer));
+}
+
+static inline void
+crankvm_primitive_returnUInteger64(crankvm_primitive_context_t *primitiveContext, uint64_t integer)
+{
+    return crankvm_primitive_successWithResult(primitiveContext, crankvm_object_forUInteger64(primitiveContext->context, integer));
+}
+
+#ifdef CRANK_VM_64_BITS
+static inline void
+crankvm_primitive_returnInteger128(crankvm_primitive_context_t *primitiveContext, int64_t integer)
+{
+    return crankvm_primitive_successWithResult(primitiveContext, crankvm_object_forInteger128(primitiveContext->context, integer));
+}
+#endif
+
+static inline void
 crankvm_primitive_returnBoolean(crankvm_primitive_context_t *primitiveContext, int boolean)
 {
     return crankvm_primitive_successWithResult(primitiveContext, crankvm_object_forBoolean(primitiveContext->context, boolean));
@@ -226,6 +286,12 @@ static inline void
 crankvm_primitive_returnCharacter(crankvm_primitive_context_t *primitiveContext, uint32_t character)
 {
     return crankvm_primitive_successWithResult(primitiveContext, crankvm_oop_encodeCharacter(character));
+}
+
+static inline void
+crankvm_primitive_returnFloat(crankvm_primitive_context_t *primitiveContext, double floatValue)
+{
+    return crankvm_primitive_successWithResult(primitiveContext, crankvm_object_forFloat(primitiveContext->context, floatValue));
 }
 
 static inline void

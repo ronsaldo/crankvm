@@ -10,6 +10,8 @@ set(CrankVM_SOURCES
     image.c
     image.h
     interpreter.c
+    message-primitives.c
+    message-primitives.h
     numbered-primitives.h
     numbered-primitives.c
     object-model.c
@@ -17,6 +19,8 @@ set(CrankVM_SOURCES
     object-primitives.h
     read-memory-stream.h
     special-objects.c
+    scheduling-primitives.c
+    scheduling-primitives.h
     system-primitives.c
     system-primitives.h
 

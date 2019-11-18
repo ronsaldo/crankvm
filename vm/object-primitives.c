@@ -179,6 +179,7 @@ crankvm_primitive_at(crankvm_primitive_context_t *primitiveContext)
 {
     crankvm_oop_t receiver = crankvm_primitive_getStackAt(primitiveContext, 1);
     intptr_t index = crankvm_primitive_getSmallIntegerValue(primitiveContext, crankvm_primitive_getStackAt(primitiveContext, 0));
+    printf("Primitive at: [%p]%ld\n", (void*)crankvm_primitive_getStackAt(primitiveContext, 0), index);
     if(crankvm_primitive_hasFailed(primitiveContext))
         return crankvm_primitive_fail(primitiveContext);
 

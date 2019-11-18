@@ -53,7 +53,12 @@ crankvm_heap_segment_allocate(crankvm_heap_segment_t *segment, size_t size)
 static crankvm_object_header_t *
 crankvm_heap_allocate(crankvm_heap_t *heap, size_t size)
 {
-    return crankvm_heap_segment_allocate(&heap->firstSegment, size);
+    crankvm_object_header_t *allocatedObject = crankvm_heap_segment_allocate(&heap->firstSegment, size);
+    if(allocatedObject)
+        return allocatedObject;
+
+    printf("TODO: Create an additional heap segment\n");
+    abort();
 }
 
 static crankvm_object_header_t *
@@ -133,7 +138,7 @@ crankvm_heap_newObjectWithLogicalSize(crankvm_context_t *context, crankvm_object
             slots[i] = nilOop;
     }
 
-    return allocatedObject;    
+    return allocatedObject;
 }
 
 crankvm_object_header_t *
@@ -142,7 +147,7 @@ crankvm_heap_shallowCopy(crankvm_context_t *context, crankvm_object_header_t *so
     size_t slotCount = crankvm_object_header_getSlotCount(sourceObject);
     crankvm_object_format_t format = crankvm_object_header_getObjectFormat(sourceObject);
     unsigned int classIndex = crankvm_object_header_getClassIndex(sourceObject);
-    
+
     // Make sure there is at least one physical slot, for storing a forwarding pointer.
     size_t actualSlotCount = slotCount;
     if(actualSlotCount == 0)
@@ -157,7 +162,7 @@ crankvm_heap_shallowCopy(crankvm_context_t *context, crankvm_object_header_t *so
     crankvm_object_header_t *allocatedObject = (crankvm_object_header_t*)crankvm_heap_allocate(&context->heap, objectSize);
     memcpy(allocatedObject, sourceObject, objectSize);
     memset(allocatedObject, 0, sizeof(crankvm_object_header_t));
-    
+
     crankvm_object_header_setSlotCount(allocatedObject, slotCount);
     crankvm_object_header_setObjectFormat(allocatedObject, format);
     crankvm_object_header_setClassIndex(allocatedObject, classIndex);

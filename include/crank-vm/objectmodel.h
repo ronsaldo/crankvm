@@ -5,7 +5,7 @@
 #include <crank-vm/oop.h>
 #include <crank-vm/common.h>
 #include <crank-vm/error.h>
-
+#include <string.h>
 #if CRANK_VM_WORD_SIZE == 4
 
 enum crankvm_oop_tag_e
@@ -62,8 +62,8 @@ enum crankvm_oop_tag_e
 #define CRANK_VM_IDENTITY_OBJECT_ALIGNMENT 8
 
 #define CRANK_VM_SMALL_FLOAT_EXPONENT_OFFSET (/* 1023 - 127 */ 896)
-#define CRANK_VM_SMALL_FLOAT_EXPONENT_MIN (/* 1023 - 127 */ SmallFloatExponentOffset)
-#define CRANK_VM_SMALL_FLOAT_EXPONENT_MAX (/* 1023 - 127 */ 1151)
+#define CRANK_VM_SMALL_FLOAT_EXPONENT_MIN (/* 1023 - 127 */ CRANK_VM_SMALL_FLOAT_EXPONENT_OFFSET)
+#define CRANK_VM_SMALL_FLOAT_EXPONENT_MAX (/* 1023 + 127 */ 1151)
 
 #define CRANK_VM_SMALL_INTEGER_USABLE_BITS (CRANK_VM_OOP_BITS - CRANK_VM_OOP_TAG_SMALL_INTEGER_SHIFT)
 #define CRANK_VM_SMALL_INTEGER_MIN_VALUE (-( ((intptr_t)1)<<(CRANK_VM_SMALL_INTEGER_USABLE_BITS - 1) ) )
@@ -137,6 +137,13 @@ crankvm_oop_isSmallFloat(crankvm_oop_t oop)
 
 #if CRANK_VM_WORD_SIZE == 4
 
+static inline int
+crankvm_oop_isFloatInSmallFloatRange(double value)
+{
+    (void)value;
+    return 0;
+}
+
 static inline crankvm_oop_t
 crankvm_oop_encodeSmallFloat(crankvm_oop_t oop)
 {
@@ -150,20 +157,58 @@ crankvm_oop_decodeSmallFloat(crankvm_oop_t oop)
 }
 
 #else
-static inline crankvm_oop_t
-crankvm_oop_encodeSmallFloat(crankvm_oop_t oop)
+
+static inline int
+crankvm_oop_isFloatInSmallFloatRange(double value)
 {
-    crankvm_assertAlways(crankvm_oop_isSmallFloat(oop));
-    // TODO: implement this case.
-    return 0.0;
+    uint64_t valueIEEE754 = 0;
+    memcpy(&valueIEEE754, &value, 8);
+
+    uint64_t exponent = (valueIEEE754 >> 52) & 2047;
+    return CRANK_VM_SMALL_FLOAT_EXPONENT_MIN <= exponent && exponent <= CRANK_VM_SMALL_FLOAT_EXPONENT_MAX;
 }
 
 static inline double
 crankvm_oop_decodeSmallFloat(crankvm_oop_t oop)
 {
     crankvm_assertAlways(crankvm_oop_isSmallFloat(oop));
-    // TODO: implement this case.
-    return 0.0;
+
+    // Shift out the tag.
+    uint64_t decodedOop = oop >> 3;
+
+    // Offset the exponent
+    decodedOop += ((uint64_t)CRANK_VM_SMALL_FLOAT_EXPONENT_OFFSET << 53);
+
+    // Rotate right the sign bit.
+    decodedOop = (decodedOop >> 1) | (decodedOop << 62);
+
+    // Cast back to float.
+    double floatValue = 0.0f;
+    memcpy(&floatValue, &decodedOop, 8);
+    printf("Decoded float value: %f\n", floatValue);
+    return floatValue;
+}
+
+static inline crankvm_oop_t
+crankvm_oop_encodeSmallFloat(double value)
+{
+    crankvm_assertAlways(crankvm_oop_isFloatInSmallFloatRange(value));
+
+    uint64_t valueIEEE754 = 0;
+    memcpy(&valueIEEE754, &value, 8);
+
+    // Rotate left the sign.
+    crankvm_oop_t encodedOop = (valueIEEE754 << 1) | (valueIEEE754 >> 62);
+
+    // Offset the exponent
+    encodedOop -= ((uint64_t)CRANK_VM_SMALL_FLOAT_EXPONENT_OFFSET << 53);
+
+    // Add the tag.
+    encodedOop = (encodedOop << CRANK_VM_OOP_TAG_SMALL_FLOAT_SHIFT) | CRANK_VM_OOP_TAG_SMALL_FLOAT_VALUE;
+
+    printf("Encoded small float %f -> %f\n", value, crankvm_oop_decodeSmallFloat(encodedOop));
+
+    return encodedOop;
 }
 
 #endif
@@ -502,7 +547,12 @@ LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forInteger32(crankvm_context_t 
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forUInteger32(crankvm_context_t *context, uint32_t integer);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forInteger64(crankvm_context_t *context, int64_t integer);
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forUInteger64(crankvm_context_t *context, uint64_t integer);
+#ifdef CRANK_VM_64_BITS
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forInteger128(crankvm_context_t *context, __int128 integer);
+#endif
 LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forBoolean(crankvm_context_t *context, int boolean);
+LIB_CRANK_VM_EXPORT crankvm_oop_t crankvm_object_forFloat(crankvm_context_t *context, double value);
+LIB_CRANK_VM_EXPORT int crankvm_object_tryToDecodeFloat(crankvm_context_t *context, crankvm_oop_t object, double *resultValue);
 LIB_CRANK_VM_EXPORT void crankvm_object_prettyPrintTo(crankvm_context_t *context, crankvm_oop_t object, FILE *output);
 
 #endif //_CRANK_VM_OBJECT_MODEL_H_

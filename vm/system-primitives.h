@@ -12,4 +12,7 @@ void crankvm_primitive_systemPrimitive_exitToDebugger(crankvm_primitive_context_
 
 void crankvm_primitive_systemPrimitive_vmParameter(crankvm_primitive_context_t *primitiveContext);
 
+void crankvm_primitive_systemPrimitive_utcMicrosecondClock(crankvm_primitive_context_t *primitiveContext);
+void crankvm_primitive_systemPrimitive_localMicrosecondClock(crankvm_primitive_context_t *primitiveContext);
+
 #endif //CRANK_VM_SYSTEM_PRIMITIVES_H

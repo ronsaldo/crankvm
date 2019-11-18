@@ -3,6 +3,7 @@
 #include <crank-vm/system-primitive-number.h>
 #include "heap.h"
 #include "context-internal.h"
+#include <string.h>
 
 LIB_CRANK_VM_EXPORT crankvm_error_t
 crankvm_CompiledCode_validate(crankvm_context_t *context, crankvm_CompiledCode_t *compiledCode)
@@ -159,6 +160,68 @@ crankvm_Array_create(crankvm_context_t *context, size_t variableSize)
     return (crankvm_Array_t*)crankvm_Behavior_basicNewWithVariable(context, classArray, variableSize);
 }
 
+// ByteArray
+LIB_CRANK_VM_EXPORT crankvm_ByteArray_t*
+crankvm_ByteArray_create(crankvm_context_t *context, size_t variableSize)
+{
+    crankvm_Behavior_t *classByteArray = context->roots.specialObjectsArray->classByteArray;
+    return (crankvm_ByteArray_t*)crankvm_Behavior_basicNewWithVariable(context, classByteArray, variableSize);
+}
+
+// ByteString
+LIB_CRANK_VM_EXPORT crankvm_ByteString_t*
+crankvm_ByteString_create(crankvm_context_t *context, size_t variableSize)
+{
+    crankvm_Behavior_t *classByteString = context->roots.specialObjectsArray->classByteString;
+    return (crankvm_ByteString_t*)crankvm_Behavior_basicNewWithVariable(context, classByteString, variableSize);
+}
+
+// LargeInteger
+LIB_CRANK_VM_EXPORT crankvm_LargeInteger_t*
+crankvm_LargeInteger_create(crankvm_context_t *context, size_t variableSize, int positive)
+{
+    crankvm_Behavior_t *classLargeInteger = positive ?
+        context->roots.specialObjectsArray->classLargePositiveInteger :
+        context->roots.specialObjectsArray->classLargeNegativeInteger;
+    return (crankvm_LargeInteger_t*)crankvm_Behavior_basicNewWithVariable(context, classLargeInteger, variableSize);
+}
+
+LIB_CRANK_VM_EXPORT crankvm_oop_t
+crankvm_LargeInteger_encodeUnormalizedValue(crankvm_context_t *context, int positive, size_t valueSize, uint8_t *value)
+{
+    size_t requiredSize = valueSize;
+    for(size_t i = 0; i < valueSize; ++i)
+    {
+        if(value[requiredSize - 1] != 0)
+            break;
+        --requiredSize;
+    }
+
+    // TODO: Add support for big endian architecture
+    // Does it fit in a small integer?
+    if(requiredSize == sizeof(uintptr_t))
+    {
+        uintptr_t rawSmallIntegerValue = 0;
+        memcpy(&rawSmallIntegerValue, value, sizeof(uintptr_t));
+
+        if(positive)
+        {
+            if(rawSmallIntegerValue <= CRANK_VM_SMALL_INTEGER_MAX_VALUE)
+                return crankvm_oop_encodeSmallInteger((intptr_t)rawSmallIntegerValue);
+        }
+        else
+        {
+            if(rawSmallIntegerValue <= -CRANK_VM_SMALL_INTEGER_MIN_VALUE)
+                return crankvm_oop_encodeSmallInteger(-((intptr_t)rawSmallIntegerValue));
+        }
+    }
+
+    // Create the large integer with the required size.
+    crankvm_LargeInteger_t *result = crankvm_LargeInteger_create(context, requiredSize, positive);
+    memcpy(result->data, value, requiredSize);
+    return (crankvm_oop_t)result;
+}
+
 // BlockClosure
 LIB_CRANK_VM_EXPORT crankvm_BlockClosure_t *
 crankvm_BlockClosure_create(crankvm_context_t *context, uintptr_t argumentCount, size_t copiedValueCount)
@@ -174,10 +237,12 @@ LIB_CRANK_VM_EXPORT crankvm_MethodContext_t*
 crankvm_MethodContext_create(crankvm_context_t *context, int largeFrame)
 {
     crankvm_Behavior_t *classMethodContext = context->roots.specialObjectsArray->classMethodContext;
-    if(largeFrame)
-        return (crankvm_MethodContext_t*)crankvm_Behavior_basicNewWithVariable(context, classMethodContext, CRANK_VM_METHOD_CONTEXT_LARGE_FRAME_SIZE);
-    else
-        return (crankvm_MethodContext_t*)crankvm_Behavior_basicNewWithVariable(context, classMethodContext, CRANK_VM_METHOD_CONTEXT_SMALL_FRAME_SIZE);
+    size_t frameSize = largeFrame ? CRANK_VM_METHOD_CONTEXT_LARGE_FRAME_SIZE : CRANK_VM_METHOD_CONTEXT_SMALL_FRAME_SIZE;
+    //return (crankvm_MethodContext_t*)crankvm_Behavior_basicNewWithVariable(context, classMethodContext, frameSize)
+    crankvm_MethodContext_t* result = (crankvm_MethodContext_t*)crankvm_Behavior_basicNewWithVariable(context, classMethodContext, frameSize);
+    printf("Created methodContext[size: %d] %p\n", (int)frameSize, result);
+    return result;
+
 }
 
 LIB_CRANK_VM_EXPORT int
@@ -261,7 +326,7 @@ crankvm_MethodContext_createCompiledMethodActivationContext(crankvm_context_t *v
 
     // Pop the receiver into the new context.
     newContext->receiver = receiver;
-    newContext->stackp = crankvm_oop_encodeSmallInteger(argumentCount + calledHeader->numberOfTemporaries);
+    newContext->stackp = crankvm_oop_encodeSmallInteger(calledHeader->numberOfTemporaries);
 
     *result = newContext;
     return CRANK_VM_OK;

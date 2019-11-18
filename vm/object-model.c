@@ -1,6 +1,7 @@
 #include <crank-vm/objectmodel.h>
 #include <assert.h>
 #include "context-internal.h"
+#include <string.h>
 
 LIB_CRANK_VM_EXPORT size_t
 crankvm_object_header_getSmalltalkSize(crankvm_object_header_t *header)
@@ -201,8 +202,10 @@ crankvm_object_forInteger(crankvm_context_t *context, intptr_t integer)
     if(crankvm_oop_isIntegerInSmallIntegerRange(integer))
         return crankvm_oop_encodeSmallInteger(integer);
 
-    printf("TODO: Make large integer in crankvm_object_forInteger\n");
-    abort();
+    int positive = integer >= 0;
+    if(!positive)
+        integer = -integer;
+    return crankvm_LargeInteger_encodeUnormalizedValue(context, positive, sizeof(intptr_t), (uint8_t*)&integer);
 }
 
 #if CRANK_VM_WORD_SIZE == 4
@@ -212,19 +215,19 @@ crankvm_object_forInteger32(crankvm_context_t *context, int32_t integer)
     if(crankvm_oop_isIntegerInSmallIntegerRange(integer))
         return crankvm_oop_encodeSmallInteger(integer);
 
-    printf("TODO: Make large integer in crankvm_object_forInteger\n");
-    abort();
+    int positive = integer >= 0;
+    if(!positive)
+        integer = -integer;
+    return crankvm_LargeInteger_encodeUnormalizedValue(context, positive, 4, (uint8_t*)&integer);
 }
 
 LIB_CRANK_VM_EXPORT crankvm_oop_t
 crankvm_object_forUInteger32(crankvm_context_t *context, uint32_t integer)
 {
-
     if(integer <= CRANK_VM_SMALL_INTEGER_MAX_VALUE)
         return crankvm_oop_encodeSmallInteger(integer);
 
-    printf("TODO: Make large integer in crankvm_object_forInteger\n");
-    abort();
+    return crankvm_LargeInteger_encodeUnormalizedValue(context, 1, 4, (uint8_t*)&integer);
 }
 #else
 LIB_CRANK_VM_EXPORT crankvm_oop_t
@@ -244,8 +247,13 @@ crankvm_object_forUInteger32(crankvm_context_t *context, uint32_t integer)
 LIB_CRANK_VM_EXPORT crankvm_oop_t
 crankvm_object_forInteger64(crankvm_context_t *context, int64_t integer)
 {
-    printf("TODO: Make large integer in crankvm_object_forInteger\n");
-    abort();
+    if(CRANK_VM_SMALL_INTEGER_MIN_VALUE <= integer && integer <= CRANK_VM_SMALL_INTEGER_MAX_VALUE)
+        return crankvm_oop_encodeSmallInteger(integer);
+
+    int positive = integer >= 0;
+    if(!positive)
+        integer = -integer;
+    return crankvm_LargeInteger_encodeUnormalizedValue(context, positive, 8, (uint8_t*)&integer);
 }
 
 LIB_CRANK_VM_EXPORT crankvm_oop_t
@@ -254,9 +262,24 @@ crankvm_object_forUInteger64(crankvm_context_t *context, uint64_t integer)
     if(integer <= CRANK_VM_SMALL_INTEGER_MAX_VALUE)
         return crankvm_oop_encodeSmallInteger(integer);
 
-    printf("TODO: Make large integer in crankvm_object_forInteger\n");
-    abort();
+    return crankvm_LargeInteger_encodeUnormalizedValue(context, 1, 8, (uint8_t*)&integer);
 }
+
+#ifdef CRANK_VM_64_BITS
+LIB_CRANK_VM_EXPORT crankvm_oop_t
+crankvm_object_forInteger128(crankvm_context_t *context, __int128 integer)
+{
+    if(CRANK_VM_SMALL_INTEGER_MIN_VALUE <= integer && integer <= CRANK_VM_SMALL_INTEGER_MAX_VALUE)
+        return crankvm_oop_encodeSmallInteger(integer);
+
+    int positive = integer >= 0;
+    if(!positive)
+        integer = -integer;
+
+    return crankvm_LargeInteger_encodeUnormalizedValue(context, positive, 16, (uint8_t*)&integer);
+}
+
+#endif
 
 LIB_CRANK_VM_EXPORT crankvm_oop_t
 crankvm_object_forBoolean(crankvm_context_t *context, int boolean)
@@ -312,4 +335,34 @@ crankvm_object_prettyPrintTo(crankvm_context_t *context, crankvm_oop_t object, F
     {
         fprintf(output, "(Oop)0x%p", (void*)object);
     }
+}
+
+LIB_CRANK_VM_EXPORT crankvm_oop_t
+crankvm_object_forFloat(crankvm_context_t *context, double value)
+{
+    if(crankvm_oop_isFloatInSmallFloatRange(value))
+        return crankvm_oop_encodeSmallFloat(value);
+    
+    crankvm_Float_t *boxedFloat = (crankvm_Float_t*)crankvm_Behavior_basicNewWithVariable(context, context->roots.specialObjectsArray->classFloat, 2);
+    boxedFloat->value = value;
+    return (crankvm_oop_t)boxedFloat;
+}
+
+LIB_CRANK_VM_EXPORT int
+crankvm_object_tryToDecodeFloat(crankvm_context_t *context, crankvm_oop_t object, double *resultValue)
+{
+    if(crankvm_oop_isSmallFloat(object))
+    {
+        *resultValue = crankvm_oop_decodeSmallFloat(object);
+        return 1;
+    }
+
+    if(!crankvm_oop_isPointer(object))
+        return 0;
+
+    if(crankvm_object_getClass(context, object) != (crankvm_oop_t)context->roots.specialObjectsArray->classFloat)
+        return 0;
+
+    *resultValue = ((crankvm_Float_t*)object)->value;
+    return 1;
 }

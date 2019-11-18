@@ -22,4 +22,17 @@ void crankvm_primitive_integerGreaterOrEqual(crankvm_primitive_context_t *contex
 void crankvm_primitive_integerEqual(crankvm_primitive_context_t *context);
 void crankvm_primitive_integerNotEqual(crankvm_primitive_context_t *context);
 
+void crankvm_primitive_asFloat(crankvm_primitive_context_t *primitiveContext);
+void crankvm_primitive_floatTruncated(crankvm_primitive_context_t *primitiveContext);
+void crankvm_primitive_floatAdd(crankvm_primitive_context_t *primitiveContext);
+void crankvm_primitive_floatSubtract(crankvm_primitive_context_t *primitiveContext);
+void crankvm_primitive_floatMultiply(crankvm_primitive_context_t *primitiveContext);
+void crankvm_primitive_floatDivide(crankvm_primitive_context_t *primitiveContext);
+void crankvm_primitive_floatLessThan(crankvm_primitive_context_t *primitiveContext);
+void crankvm_primitive_floatGreaterThan(crankvm_primitive_context_t *primitiveContext);
+void crankvm_primitive_floatLessOrEqual(crankvm_primitive_context_t *primitiveContext);
+void crankvm_primitive_floatGreaterOrEqual(crankvm_primitive_context_t *primitiveContext);
+void crankvm_primitive_floatEqual(crankvm_primitive_context_t *primitiveContext);
+void crankvm_primitive_floatNotEqual(crankvm_primitive_context_t *primitiveContext);
+
 #endif //CRANK_VM_ARITHMETIC_PRIMITIVES_H

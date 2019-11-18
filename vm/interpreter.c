@@ -261,8 +261,13 @@ crankvm_interpreter_fetchMethodContext(crankvm_interpreter_state_t *self)
     self->pc = crankvm_oop_decodeSmallInteger(methodContext->baseClass.pc);
     self->stackPointer = crankvm_oop_decodeSmallInteger(methodContext->stackp);
     self->stackLimit = crankvm_object_header_getSlotCount((crankvm_object_header_t *)methodContext);
-    if(self->pc <= 0 || self->stackPointer > self->stackLimit)
+    if(self->pc <= 0 || self->stackPointer + CRANK_VM_MethodContext_InstanceFixedSize > self->stackLimit)
+    {
+        printf("Fetched method context invalid parameters: pc %d sp %d stackLimit %d\n", (int)self->pc, (int)self->stackPointer, (int)self->stackLimit);
         return CRANK_VM_ERROR_INVALID_PARAMETER;
+    }
+
+    self->stackLimit -= CRANK_VM_MethodContext_InstanceFixedSize;
 
     // Get the pointer into the instructions.
     crankvm_oop_t methodSelector = crankvm_CompiledCode_getSelector(_theContext, self->objects.method);
@@ -427,6 +432,7 @@ crankvm_interpreter_activateMethodWithArguments(crankvm_interpreter_state_t *sel
         return error;
 
     // Set the sender context.
+    printf("expectedArgumentCount %d, New context %p slotCount %d\n", expectedArgumentCount, newContext, (int)crankvm_object_header_getSlotCount((crankvm_object_header_t *)newContext));
     newContext->baseClass.sender = (crankvm_oop_t)self->objects.methodContext;
 
     // Pop the arguments into the new context.
@@ -442,6 +448,7 @@ crankvm_interpreter_activateMethodWithArguments(crankvm_interpreter_state_t *sel
     // Change into the new context.
     self->objects.methodContext = newContext;
     printf("Activating new context %p\n", newContext);
+    printf("New context %p slotCount %d\n", newContext, (int)crankvm_object_header_getSlotCount((crankvm_object_header_t *)newContext));
     return crankvm_interpreter_fetchMethodContext(self);
 }
 
@@ -471,6 +478,58 @@ crankvm_interpreter_sendToWithLookupFrom(crankvm_interpreter_state_t *self, int 
 
     // Create the context, and invoke the method.
     return crankvm_interpreter_activateMethodWithArguments(self, expectedArgumentCount, methodOop);
+}
+
+static crankvm_MethodContext_t*
+crankvm_interpreter_createMethodContextWithArguments(crankvm_interpreter_state_t *self, crankvm_oop_t methodOop, crankvm_oop_t receiver, size_t expectedArgumentCount, crankvm_oop_t *expectedArguments)
+{
+    // Check the activation argument count.
+    crankvm_compiled_code_header_t calledHeader;
+    int parsedPrimitiveNumber;
+    uintptr_t initialPC;
+    crankvm_error_t error = crankvm_CompiledCode_checkActivationWithArgumentCount(_theContext, (crankvm_CompiledCode_t*)methodOop, expectedArgumentCount, &calledHeader, &parsedPrimitiveNumber, &initialPC);
+    if(error)
+        return (crankvm_MethodContext_t*)crankvm_specialObject_nil(_theContext);
+
+    // Should we create a compiled method activation context?
+    crankvm_MethodContext_t *newContext = NULL;
+    error = crankvm_MethodContext_createCompiledMethodActivationContext(_theContext, &newContext, (crankvm_CompiledCode_t*)methodOop, receiver, expectedArgumentCount, expectedArguments, &calledHeader, initialPC);
+    if(error)
+        return (crankvm_MethodContext_t*)crankvm_specialObject_nil(_theContext);
+
+    // Set the sender context.
+    newContext->baseClass.sender = (crankvm_oop_t)self->objects.methodContext;
+    return newContext;
+}
+
+LIB_CRANK_VM_EXPORT crankvm_MethodContext_t *
+crankvm_interpreter_createMethodContextForMessageSendWithLookupClass(crankvm_interpreter_state_t *self, crankvm_oop_t receiver, crankvm_oop_t selector, crankvm_oop_t lookupClass, size_t argumentCount, crankvm_oop_t *arguments)
+{
+    if(crankvm_oop_isNil(_theContext, lookupClass))
+        return (crankvm_MethodContext_t*)crankvm_specialObject_nil(_theContext);
+
+    // Lookup the selector
+    crankvm_oop_t methodOop = crankvm_Behavior_lookupSelector(_theContext, (crankvm_Behavior_t*)lookupClass, selector);
+    if(crankvm_oop_isNil(_theContext, methodOop))
+    {
+        printf("TODO: create method context for doesNotUnderstand:\n");
+        UNIMPLEMENTED();
+    }
+
+    // TODO: Support calling something that is not a compiled code.
+    if(!crankvm_oop_isCompiledCode(methodOop))
+    {
+        printf("TODO: create method context for non-compiled method\n");
+        UNIMPLEMENTED();
+    }
+
+    return crankvm_interpreter_createMethodContextWithArguments(self, methodOop, receiver, argumentCount, arguments);
+}
+
+LIB_CRANK_VM_EXPORT crankvm_MethodContext_t*
+crankvm_interpreter_createMethodContextForMessageSend(crankvm_interpreter_state_t *self, crankvm_oop_t receiver, crankvm_oop_t selector, size_t argumentCount, crankvm_oop_t *arguments)
+{
+    return crankvm_interpreter_createMethodContextForMessageSendWithLookupClass(self, receiver, selector, crankvm_object_getClass(_theContext, receiver), argumentCount, arguments);
 }
 
 static crankvm_error_t
@@ -1443,7 +1502,7 @@ crankvm_interpreter_run(crankvm_interpreter_state_t *self)
         self->currentBytecode = self->nextBytecode;
         self->pc = self->nextPC;
 
-        printf("Bytecode: [%02X]%s\n", self->currentBytecode, bytecodeNameTable[self->currentBytecode + self->currentBytecodeSetOffset]);
+        printf("Bytecode: [%02X,SP:%02d]%s\n", self->currentBytecode, (int)self->stackPointer, bytecodeNameTable[self->currentBytecode + self->currentBytecodeSetOffset]);
 
         switch(self->currentBytecode + self->currentBytecodeSetOffset)
         {

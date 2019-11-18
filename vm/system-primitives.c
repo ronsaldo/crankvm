@@ -1,5 +1,9 @@
 #include "system-primitives.h"
+#include <sys/time.h>
+#include <time.h>
 
+#define MicrosecondsFrom1901To1970 2177452800000000ULL
+#define MicrosecondsPerSecond 1000000ULL
 
 CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_primitiveFail, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_PRIMITIVE_FAIL) // This must fail
 
@@ -8,6 +12,9 @@ CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_systemPrimitive_quit, CRA
 CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_systemPrimitive_exitToDebugger, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_EXIT_TO_DEBUGGER)
 
 CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_systemPrimitive_vmParameter, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_VM_PARAMETER);
+
+CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_systemPrimitive_utcMicrosecondClock, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_VM_PARAMETER_UTC_MICROSECOND_CLOCK)
+CRANK_VM_CONNECT_PRIMITIVE_TO_NUMBER(crankvm_primitive_systemPrimitive_localMicrosecondClock, CRANK_VM_SYSTEM_PRIMITIVE_NUMBER_VM_PARAMETER_LOCAL_MICROSECOND_CLOCK)
 
 void
 crankvm_primitive_primitiveFail(crankvm_primitive_context_t *primitiveContext)
@@ -99,9 +106,21 @@ crankvm_primitive_systemPrimitive_getVMParameter(crankvm_primitive_context_t *pr
     switch(parameterIndex)
     {
     case 40: return crankvm_oop_encodeSmallInteger(CRANK_VM_WORD_SIZE);
+    case 44: return crankvm_oop_encodeSmallInteger(0); // Size of eden, in bytes.
     default:
         printf("Unsupported vm parameter %d requested\n", (int)parameterIndex);
         return crankvm_specialObject_nil(primitiveContext->context);
+    }
+}
+
+static void
+crankvm_primitive_systemPrimitive_setVMParameter(crankvm_primitive_context_t *primitiveContext, intptr_t parameterIndex, crankvm_oop_t newValue)
+{
+    switch(parameterIndex)
+    {
+    default:
+        printf("Unsupported setting vm parameter %d.\n", (int)parameterIndex);
+        return crankvm_primitive_returnOop(primitiveContext, newValue);
     }
 }
 
@@ -126,7 +145,43 @@ crankvm_primitive_systemPrimitive_vmParameter(crankvm_primitive_context_t *primi
     }
     else if(argumentCount == 2)
     {
-        abort();
-    }
+        intptr_t parameterValue = crankvm_primitive_getStackAt(primitiveContext, 0);
+        intptr_t parameterIndex = crankvm_primitive_getSmallIntegerValue(primitiveContext, crankvm_primitive_getStackAt(primitiveContext, 1));
+        if(crankvm_primitive_hasFailed(primitiveContext))
+            return crankvm_primitive_fail(primitiveContext);
 
+        return crankvm_primitive_systemPrimitive_setVMParameter(primitiveContext, parameterIndex, parameterValue);
+    }
+}
+
+static uint64_t
+getCurrentMicrosecondsInUTC()
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (uint64_t)tv.tv_sec*MicrosecondsPerSecond + tv.tv_usec + MicrosecondsFrom1901To1970;
+}
+
+static uint64_t
+getLocalTimezoneOffset()
+{
+    return localtime(NULL)->tm_gmtoff*MicrosecondsPerSecond;
+}
+
+static uint64_t
+getCurrentMicrosecondsInLocalTime()
+{
+    return getCurrentMicrosecondsInUTC() + getLocalTimezoneOffset();
+}
+
+void
+crankvm_primitive_systemPrimitive_utcMicrosecondClock(crankvm_primitive_context_t *primitiveContext)
+{
+    return crankvm_primitive_returnUInteger64(primitiveContext, getCurrentMicrosecondsInUTC());
+}
+
+void
+crankvm_primitive_systemPrimitive_localMicrosecondClock(crankvm_primitive_context_t *primitiveContext)
+{
+    return crankvm_primitive_returnUInteger64(primitiveContext, getCurrentMicrosecondsInLocalTime());
 }

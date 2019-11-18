@@ -1,5 +1,42 @@
 #include "crank-vm/interpreter.h"
 #include <unistd.h>
+#include <stdint.h>
+
+typedef struct crankvm_file_handle_s
+{
+    uint32_t sessionID;	/* ikp: must be first */
+    uintptr_t nativeHandle;
+    uint8_t	writeable;
+    uint8_t lastOp; /* 0 = uncommitted, 1 = read, 2 = write */
+    uint8_t lastChar;
+    uint8_t isStdioStream;
+} crankvm_file_handle_t;
+
+static crankvm_file_handle_t*
+crankvm_primitive_getFileHandleAt(crankvm_primitive_context_t *primitiveContext, size_t index)
+{
+    crankvm_oop_t fileHandleOop = crankvm_primitive_getStackAt(primitiveContext, index);
+    if(crankvm_primitive_hasFailed(primitiveContext))
+        return NULL;
+
+    crankvm_file_handle_t *handleBytes = (crankvm_file_handle_t*)crankvm_primitive_getBytesPointer(primitiveContext, fileHandleOop);
+    if(crankvm_primitive_hasFailed(primitiveContext))
+        return NULL;
+
+    return handleBytes;
+}
+
+static crankvm_oop_t
+crankvm_primitive_encodeFileHandle(crankvm_primitive_context_t *primitiveContext, crankvm_file_handle_t fileHandle)
+{
+    crankvm_ByteArray_t *byteArray = crankvm_ByteArray_create(crankvm_primitive_getContext(primitiveContext), sizeof(crankvm_file_handle_t));
+
+    memcpy(byteArray->data, &fileHandle, sizeof(fileHandle));
+    printf("Encode file handle: %d\n", (int)fileHandle.nativeHandle);
+    fflush(stdout);
+    abort();
+    return (crankvm_oop_t)byteArray;
+}
 
 static void
 crankvm_FilePlugin_primitiveConnectToFile(crankvm_primitive_context_t *primitiveContext)
@@ -89,10 +126,10 @@ crankvm_FilePlugin_primitiveFileDescriptorType(crankvm_primitive_context_t *prim
 static void
 crankvm_FilePlugin_primitiveFileFlush(crankvm_primitive_context_t *primitiveContext)
 {
-    int fd = crankvm_primitive_getSmallIntegerValue(primitiveContext, crankvm_primitive_getStackAt(primitiveContext, 0));
+    crankvm_file_handle_t *fileHandle = crankvm_primitive_getFileHandleAt(primitiveContext, 0);
     if(crankvm_primitive_hasFailed(primitiveContext)) return;
 
-    (void)fd;
+    (void)fileHandle;
 
     return crankvm_primitive_returnOop(primitiveContext, crankvm_primitive_getReceiver(primitiveContext));
 }
@@ -142,10 +179,17 @@ crankvm_FilePlugin_primitiveFileSize(crankvm_primitive_context_t *primitiveConte
 static void
 crankvm_FilePlugin_primitiveFileStdioHandles(crankvm_primitive_context_t *primitiveContext)
 {
+    crankvm_file_handle_t stdinHandle =
+    { .sessionID = 0, .nativeHandle = STDIN_FILENO, .writeable = 0, .lastOp = 0, .lastChar = 0, .isStdioStream = 1};
+    crankvm_file_handle_t stdoutHandle =
+    { .sessionID = 0, .nativeHandle = STDOUT_FILENO, .writeable = 1, .lastOp = 0, .lastChar = 0, .isStdioStream = 1};
+    crankvm_file_handle_t stderrHandle =
+    { .sessionID = 0, .nativeHandle = STDERR_FILENO, .writeable = 1, .lastOp = 0, .lastChar = 0, .isStdioStream = 1};
+
     crankvm_Array_t *array = crankvm_Array_create(primitiveContext->context, 3);
-    array->slots[0] = crankvm_oop_encodeSmallInteger(STDIN_FILENO);
-    array->slots[1] = crankvm_oop_encodeSmallInteger(STDOUT_FILENO);
-    array->slots[2] = crankvm_oop_encodeSmallInteger(STDERR_FILENO);
+    array->slots[0] = crankvm_primitive_encodeFileHandle(primitiveContext, stdinHandle);
+    array->slots[1] = crankvm_primitive_encodeFileHandle(primitiveContext, stdoutHandle);
+    array->slots[2] = crankvm_primitive_encodeFileHandle(primitiveContext, stderrHandle);
     return crankvm_primitive_returnOop(primitiveContext, (crankvm_oop_t)array);
 }
 
@@ -167,12 +211,14 @@ crankvm_FilePlugin_primitiveFileWrite(crankvm_primitive_context_t *primitiveCont
     size_t count = crankvm_primitive_getSizeValue(primitiveContext, crankvm_primitive_getStackAt(primitiveContext, 0));
     size_t startIndex = crankvm_primitive_getSizeValue(primitiveContext, crankvm_primitive_getStackAt(primitiveContext, 1));
     uint8_t *bytes = crankvm_primitive_getBytesPointer(primitiveContext, crankvm_primitive_getStackAt(primitiveContext, 2));
-    int fd = crankvm_primitive_getSmallIntegerValue(primitiveContext, crankvm_primitive_getStackAt(primitiveContext, 3));
-    printf("fd: %d\n", fd);
+    crankvm_file_handle_t *fileHandle = crankvm_primitive_getFileHandleAt(primitiveContext, 3);
+    printf("fd: %p\n", (void*)fileHandle->nativeHandle);
     if(crankvm_primitive_hasFailed(primitiveContext)) return;
 
-    printf("write bytes %zu into %d\n", count, fd);
-    ssize_t written = write(fd, bytes + startIndex - 1, count);
+    printf("write bytes %zu into %d\n", count, (int)fileHandle->nativeHandle);
+    ssize_t written = write((int)fileHandle->nativeHandle, bytes + startIndex - 1, count);
+    fflush(stdout);
+    abort();
     if(written < 0)
         return crankvm_primitive_fail(primitiveContext);
 

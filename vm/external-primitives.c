@@ -45,7 +45,7 @@ crankvm_primitive_callExternalPrimitive(crankvm_primitive_context_t *primitiveCo
     if(crankvm_primitive_hasFailed(primitiveContext)) return;
 
     if(!crankvm_oop_isPointer(externalPrimitiveSpec) ||
-        crankvm_object_header_getSlotCount((crankvm_object_header_t *)externalPrimitiveSpec) < 0)
+        crankvm_object_header_getSlotCount((crankvm_object_header_t *)externalPrimitiveSpec) < 2)
         return crankvm_primitive_failWithCode(primitiveContext, CRANK_VM_PRIMITIVE_ERROR_BAD_ARGUMENT);
 
     crankvm_Array_t *primitiveSpec = (crankvm_Array_t*)externalPrimitiveSpec;
