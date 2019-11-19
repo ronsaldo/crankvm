@@ -599,7 +599,7 @@ crankvm_interpreter_invokeNormalPrimitive(crankvm_interpreter_state_t *self, cra
             errorObject = _theSpecialObjectsArray->primitiveErrorTable->errorNameArray[primitiveContext.error - 1];
 
         // Store the error object in the first temporary.
-        if(self->codeHeader.numberOfTemporaries > 0)
+        if(self->codeHeader.numberOfTemporaries > self->codeHeader.numberOfArguments)
             return crankvm_interpreter_setTemporary(self, self->codeHeader.numberOfArguments, errorObject);
         return CRANK_VM_OK;
     }
