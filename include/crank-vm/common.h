@@ -16,8 +16,10 @@
 
 #ifdef __cplusplus
 #   define CRANK_VM_EXTERN_C extern "C"
+#   define CRANK_VM_INLINE inline
 #else
 #   define CRANK_VM_EXTERN_C
+#   define CRANK_VM_INLINE static inline
 #endif
 
 #ifdef BUILD_LIB_CRANK_VM

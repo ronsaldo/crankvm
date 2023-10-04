@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 import sys
 
 primitiveNumberNameDictionary = {}
@@ -21,7 +21,7 @@ for line in sys.stdin:
         lastRange = int(elements[2])
     allPrimitives.append((name, firstRange, lastRange))
 
-usedNumbers = map(lambda x: x[1], allPrimitives) + map(lambda x: x[2], allPrimitives)
+usedNumbers = list(map(lambda x: x[1], allPrimitives)) + list(map(lambda x: x[2], allPrimitives))
 maxNumber = max(usedNumbers)
 
 primitiveTable = ['NULL'] * (maxNumber + 1)
@@ -41,7 +41,7 @@ const crankvm_primitive_function_t crankvm_numberedPrimitiveTable[%d] = {
 """ % (len(primitiveTable), len(primitiveTable)))
 
 for primitive in primitiveTable:
-    print '    %s,' % (primitive)
+    print('    %s,' % (primitive))
 
 sys.stdout.write("""};
 """)

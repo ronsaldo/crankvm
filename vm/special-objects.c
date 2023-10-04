@@ -119,7 +119,7 @@ crankvm_Behavior_getName(crankvm_context_t *context, crankvm_Behavior_t *behavio
     return ((crankvm_Class_t*)behavior)->name;
 }
 
-static inline crankvm_oop_t
+CRANK_VM_INLINE crankvm_oop_t
 crankvm_Behavior_initializeAllocateObject(crankvm_context_t *context, crankvm_Behavior_t *behavior, crankvm_object_header_t *object)
 {
     // Set the object class index.

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import json
 import sys
 
@@ -22,7 +22,7 @@ def buildBytecodeTableFromSpec(bytecodeSetSpec):
 
 def main():
     if len(sys.argv) < 3:
-        print "makeBytecodeTable.py <BytecodeSet.json> <BytecodeTable.inc>"
+        print("makeBytecodeTable.py <BytecodeSet.json> <BytecodeTable.inc>")
         return
 
     # Read the byte code table json.

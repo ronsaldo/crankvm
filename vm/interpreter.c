@@ -6,11 +6,11 @@ static const char *bytecodeNameTable[] = {
 #define BYTECODE(opcode, name) #name,
 #define UNDEFINED_BYTECODE(opcode) "UndefinedByteCode",
 
-// SqueakV3Plus closures bytecode set
-#include "SqueakV3PlusClosuresBytecodeSetTable.inc"
-
 // SistaV1 set
 #include "SistaV1BytecodeSetTable.inc"
+
+// SqueakV3Plus closures bytecode set
+#include "SqueakV3PlusClosuresBytecodeSetTable.inc"
 
 #undef BYTECODE_WITH_IMPLICIT_PARAM
 #undef BYTECODE
@@ -140,7 +140,7 @@ crankvm_interpreter_checkLiteralIndex(crankvm_interpreter_state_t *self, size_t 
     return CRANK_VM_OK;
 }
 
-static inline crankvm_error_t
+CRANK_VM_INLINE crankvm_error_t
 crankvm_interpreter_checkLiteralVariableIndex(crankvm_interpreter_state_t *self, size_t index)
 {
     if(index >= self->codeHeader.numberOfLiterals)
@@ -157,7 +157,7 @@ crankvm_interpreter_getLiteral(crankvm_interpreter_state_t *self, size_t index)
     return self->objects.method->literals[index];
 }
 
-static inline crankvm_oop_t
+CRANK_VM_INLINE crankvm_oop_t
 crankvm_interpreter_getMethodClass(crankvm_interpreter_state_t *self)
 {
     crankvm_oop_t methodClassAssociationOop = self->objects.method->literals[self->codeHeader.numberOfLiterals - 1];
@@ -168,7 +168,7 @@ crankvm_interpreter_getMethodClass(crankvm_interpreter_state_t *self)
     return methodClassAssociation->value;
 }
 
-static inline crankvm_oop_t
+CRANK_VM_INLINE crankvm_oop_t
 crankvm_interpreter_getSuperClass(crankvm_interpreter_state_t *self)
 {
     crankvm_oop_t methodClass = crankvm_interpreter_getMethodClass(self);
@@ -225,7 +225,7 @@ do { \
 #define _theSpecialObjectsArray (_theContext->roots.specialObjectsArray)
 #define _theSpecialSelectors (_theSpecialObjectsArray->specialSelectors)
 
-static inline crankvm_error_t
+CRANK_VM_INLINE crankvm_error_t
 crankvm_interpreter_fetchNextInstruction(crankvm_interpreter_state_t *self)
 {
     self->nextPC = self->pc;
@@ -233,13 +233,13 @@ crankvm_interpreter_fetchNextInstruction(crankvm_interpreter_state_t *self)
     return CRANK_VM_OK;
 }
 
-static inline uint8_t
+CRANK_VM_INLINE uint8_t
 crankvm_interpreter_fetchByte(crankvm_interpreter_state_t *self)
 {
     return self->instructions[self->pc++];
 }
 
-static inline crankvm_error_t
+CRANK_VM_INLINE crankvm_error_t
 crankvm_interpreter_fetchMethodContext(crankvm_interpreter_state_t *self)
 {
     // Validate the context
@@ -294,7 +294,7 @@ crankvm_interpreter_fetchMethodContext(crankvm_interpreter_state_t *self)
     return CRANK_VM_OK;
 }
 
-static inline crankvm_error_t
+CRANK_VM_INLINE crankvm_error_t
 crankvm_interpreter_storeMethodContextState(crankvm_interpreter_state_t *self)
 {
     crankvm_MethodContext_t *methodContext = self->objects.methodContext;
@@ -640,6 +640,13 @@ crankvm_interpreter_invokeNumberedPrimitive(crankvm_interpreter_state_t *self, u
 }
 
 static crankvm_error_t
+crankvm_interpreter_bytecodeNop(crankvm_interpreter_state_t *self)
+{
+    fetchNextInstruction();
+    return CRANK_VM_OK;
+}
+
+static crankvm_error_t
 crankvm_interpreter_pushReceiverVariable(crankvm_interpreter_state_t *self, unsigned int slotIndex)
 {
     checkReceiverSlotIndex(slotIndex);
@@ -885,6 +892,12 @@ crankvm_interpreter_bytecodeBlockReturnTop(crankvm_interpreter_state_t *self)
 {
     checkSizeToPop(1);
     return crankvm_interpreter_returnOopFromBlock(self, popOop());
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodeBlockReturnNil(crankvm_interpreter_state_t *self)
+{
+    return crankvm_interpreter_returnOopFromBlock(self, crankvm_specialObject_nil(self->context));
 }
 
 static crankvm_error_t
@@ -1450,6 +1463,12 @@ crankvm_interpreter_bytecodeSpecialMessageNewArray(crankvm_interpreter_state_t *
 }
 
 static crankvm_error_t
+crankvm_interpreter_bytecodeSpecialMessageMakePoint(crankvm_interpreter_state_t *self)
+{
+    return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->makePoint);
+}
+
+static crankvm_error_t
 crankvm_interpreter_bytecodeSpecialMessageX(crankvm_interpreter_state_t *self)
 {
     return crankvm_interpreter_sendToSpecialSelector(self, _theSpecialSelectors->x);
@@ -1517,16 +1536,15 @@ crankvm_interpreter_run(crankvm_interpreter_state_t *self)
         break;
 #define UNDEFINED_BYTECODE(opcode) // Caught by the default case.
 
-
-// SqueakV3Plus closures bytecode set
+// SistaV1 set
 #define BYTECODE_TABLE_OFFSET 0
-#include "SqueakV3PlusClosuresBytecodeSetTable.inc"
+#include "SistaV1BytecodeSetTable.inc"
 #undef BYTECODE_TABLE_OFFSET
 
-// SistaV1 set
-//#define BYTECODE_TABLE_OFFSET 256
-//#include "SistaV1BytecodeSetTable.inc"
-//#undef BYTECODE_TABLE_OFFSET
+// SqueakV3Plus closures bytecode set
+#define BYTECODE_TABLE_OFFSET 256
+#include "SqueakV3PlusClosuresBytecodeSetTable.inc"
+#undef BYTECODE_TABLE_OFFSET
 
 #undef BYTECODE_WITH_IMPLICIT_PARAM
 #undef BYTECODE

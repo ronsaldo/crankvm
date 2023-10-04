@@ -72,64 +72,64 @@ enum crankvm_oop_tag_e
 #define CRANK_VM_CHARACTER_USABLE_BITS (CRANK_VM_OOP_BITS - CRANK_VM_OOP_TAG_CHARACTER_SHIFT)
 #define CRANK_VM_CHARACTER_MAX_VALUE (+( ((intptr_t)1)<< CRANK_VM_SMALL_INTEGER_USABLE_BITS) - 1)
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_oop_isPointer(crankvm_oop_t oop)
 {
     return (oop & CRANK_VM_OOP_TAG_POINTER_MASK) == CRANK_VM_OOP_TAG_POINTER_VALUE;
 }
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_oop_isSmallInteger(crankvm_oop_t oop)
 {
     return (oop & CRANK_VM_OOP_TAG_SMALL_INTEGER_MASK) == CRANK_VM_OOP_TAG_SMALL_INTEGER_VALUE;
 }
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_oop_isIntegerInSmallIntegerRange(intptr_t integer)
 {
     return CRANK_VM_SMALL_INTEGER_MIN_VALUE <= integer && integer <= CRANK_VM_SMALL_INTEGER_MAX_VALUE;
 }
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_oop_isIntegerInCharacterRange(intptr_t integer)
 {
     return 0 <= integer && integer <= CRANK_VM_CHARACTER_MAX_VALUE;
 }
 
-static inline intptr_t
+CRANK_VM_INLINE intptr_t
 crankvm_oop_decodeSmallInteger(crankvm_soop_t oop)
 {
     crankvm_assertAlways(crankvm_oop_isSmallInteger(oop));
     return oop >> CRANK_VM_OOP_TAG_SMALL_INTEGER_SHIFT;
 }
 
-static inline crankvm_oop_t
+CRANK_VM_INLINE crankvm_oop_t
 crankvm_oop_encodeSmallInteger(intptr_t integer)
 {
     crankvm_assertAlways(crankvm_oop_isIntegerInSmallIntegerRange(integer));
     return (integer << CRANK_VM_OOP_TAG_SMALL_INTEGER_SHIFT) | CRANK_VM_OOP_TAG_SMALL_INTEGER_VALUE;
 }
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_oop_isCharacter(crankvm_oop_t oop)
 {
     return (oop & CRANK_VM_OOP_TAG_CHARACTER_MASK) == CRANK_VM_OOP_TAG_CHARACTER_VALUE;
 }
 
-static inline uintptr_t
+CRANK_VM_INLINE uintptr_t
 crankvm_oop_decodeCharacter(crankvm_soop_t oop)
 {
     crankvm_assertAlways(crankvm_oop_isCharacter(oop));
     return oop >> CRANK_VM_OOP_TAG_CHARACTER_SHIFT;
 }
 
-static inline crankvm_oop_t
+CRANK_VM_INLINE crankvm_oop_t
 crankvm_oop_encodeCharacter(uintptr_t value)
 {
     return (value << CRANK_VM_OOP_TAG_CHARACTER_SHIFT) | CRANK_VM_OOP_TAG_CHARACTER_VALUE;
 }
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_oop_isSmallFloat(crankvm_oop_t oop)
 {
     return (oop & CRANK_VM_OOP_TAG_SMALL_FLOAT_MASK) == CRANK_VM_OOP_TAG_SMALL_FLOAT_VALUE;
@@ -137,20 +137,20 @@ crankvm_oop_isSmallFloat(crankvm_oop_t oop)
 
 #if CRANK_VM_WORD_SIZE == 4
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_oop_isFloatInSmallFloatRange(double value)
 {
     (void)value;
     return 0;
 }
 
-static inline crankvm_oop_t
+CRANK_VM_INLINE crankvm_oop_t
 crankvm_oop_encodeSmallFloat(crankvm_oop_t oop)
 {
     abort();
 }
 
-static inline double
+CRANK_VM_INLINE double
 crankvm_oop_decodeSmallFloat(crankvm_oop_t oop)
 {
     abort();
@@ -158,7 +158,7 @@ crankvm_oop_decodeSmallFloat(crankvm_oop_t oop)
 
 #else
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_oop_isFloatInSmallFloatRange(double value)
 {
     uint64_t valueIEEE754 = 0;
@@ -168,7 +168,7 @@ crankvm_oop_isFloatInSmallFloatRange(double value)
     return CRANK_VM_SMALL_FLOAT_EXPONENT_MIN <= exponent && exponent <= CRANK_VM_SMALL_FLOAT_EXPONENT_MAX;
 }
 
-static inline double
+CRANK_VM_INLINE double
 crankvm_oop_decodeSmallFloat(crankvm_oop_t oop)
 {
     crankvm_assertAlways(crankvm_oop_isSmallFloat(oop));
@@ -189,7 +189,7 @@ crankvm_oop_decodeSmallFloat(crankvm_oop_t oop)
     return floatValue;
 }
 
-static inline crankvm_oop_t
+CRANK_VM_INLINE crankvm_oop_t
 crankvm_oop_encodeSmallFloat(double value)
 {
     crankvm_assertAlways(crankvm_oop_isFloatInSmallFloatRange(value));
@@ -277,13 +277,13 @@ MSB:	| 8: numSlots		| (on a byte boundary)
 
 #define CRANK_VM_AT_GET_BITS(x, bitShift, bitCount) ((x) >> bitShift) & ((1<<bitCount) - 1)
 
-static inline uint32_t
+CRANK_VM_INLINE uint32_t
 crankvm_object_header_getBitAtWord(uint32_t *word, uint32_t bitIndex)
 {
     return CRANK_VM_AT_GET_BITS(*word, bitIndex, 1);
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_object_header_setBitAtWord(uint32_t *word, uint32_t bitIndex, uint32_t value)
 {
     uint32_t bit = 1<<bitIndex;
@@ -291,21 +291,21 @@ crankvm_object_header_setBitAtWord(uint32_t *word, uint32_t bitIndex, uint32_t v
     *word = (*word & (~bit)) | bitToSetOrClear;
 }
 
-static inline uint32_t
+CRANK_VM_INLINE uint32_t
 crankvm_object_header_getRawSlotCount(crankvm_object_header_t *header)
 {
     // TODO: Check the endianness.
     return header->bytes[7];
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_object_header_setRawSlotCount(crankvm_object_header_t *header, uint32_t value)
 {
     // TODO: Check the endianness.
     header->bytes[7] = value;
 }
 
-static inline uint32_t
+CRANK_VM_INLINE uint32_t
 crankvm_object_header_getRawSlotOverflowCount(crankvm_object_header_t *header)
 {
 #ifdef CRANK_VM_64_BITS
@@ -316,7 +316,7 @@ crankvm_object_header_getRawSlotOverflowCount(crankvm_object_header_t *header)
 #endif
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_object_header_setRawSlotOverflowCount(crankvm_object_header_t *header, size_t count)
 {
 #ifdef CRANK_VM_64_BITS
@@ -327,7 +327,7 @@ crankvm_object_header_setRawSlotOverflowCount(crankvm_object_header_t *header, s
 #endif
 }
 
-static inline size_t
+CRANK_VM_INLINE size_t
 crankvm_object_header_getSlotCount(crankvm_object_header_t *header)
 {
     size_t count = crankvm_object_header_getRawSlotCount(header);
@@ -336,7 +336,7 @@ crankvm_object_header_getSlotCount(crankvm_object_header_t *header)
     return count;
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_object_header_setSlotCount(crankvm_object_header_t *header, size_t count)
 {
     if(count >= 255)
@@ -350,119 +350,119 @@ crankvm_object_header_setSlotCount(crankvm_object_header_t *header, size_t count
     }
 }
 
-static inline uint32_t
+CRANK_VM_INLINE uint32_t
 crankvm_object_header_isImmutable(crankvm_object_header_t *header)
 {
     // TODO: Check the endianness.
     return crankvm_object_header_getBitAtWord(&header->words[0], 23);
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_object_header_setIsImmutable(crankvm_object_header_t *header, uint32_t value)
 {
     // TODO: Check the endianness.
     return crankvm_object_header_setBitAtWord(&header->words[0], 23, value);
 }
 
-static inline uint32_t
+CRANK_VM_INLINE uint32_t
 crankvm_object_header_getIsGray(crankvm_object_header_t *header)
 {
     // TODO: Check the endianness.
     return crankvm_object_header_getBitAtWord(&header->words[0], 31);
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_object_header_setIsGray(crankvm_object_header_t *header, uint32_t value)
 {
     // TODO: Check the endianness.
     crankvm_object_header_setBitAtWord(&header->words[0], 31, value);
 }
 
-static inline uint32_t
+CRANK_VM_INLINE uint32_t
 crankvm_object_header_getIsMarked(crankvm_object_header_t *header)
 {
     // TODO: Check the endianness.
     return crankvm_object_header_getBitAtWord(&header->words[1], 23);
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_object_header_setIsMarked(crankvm_object_header_t *header, uint32_t value)
 {
     // TODO: Check the endianness.
     crankvm_object_header_setBitAtWord(&header->words[1], 23, value);
 }
 
-static inline uint32_t
+CRANK_VM_INLINE uint32_t
 crankvm_object_header_getIsRemembered(crankvm_object_header_t *header)
 {
     // TODO: Check the endianness.
     return crankvm_object_header_getBitAtWord(&header->words[0], 29);
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_object_header_setIsRemembered(crankvm_object_header_t *header, uint32_t value)
 {
     // TODO: Check the endianness.
     crankvm_object_header_setBitAtWord(&header->words[0], 29, value);
 }
 
-static inline uint32_t
+CRANK_VM_INLINE uint32_t
 crankvm_object_header_getIsPinned(crankvm_object_header_t *header)
 {
     // TODO: Check the endianness.
     return crankvm_object_header_getBitAtWord(&header->words[0], 30);
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_object_header_setIsPinned(crankvm_object_header_t *header, uint32_t value)
 {
     // TODO: Check the endianness.
     crankvm_object_header_setBitAtWord(&header->words[0], 30, value);
 }
 
-static inline uint32_t
+CRANK_VM_INLINE uint32_t
 crankvm_object_header_getIdentityHash(crankvm_object_header_t *header)
 {
     // TODO: Check the endianness.
     return header->words[1] & CRANK_VM_IDENTITY_HASH_MASK;
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_object_header_setIdentityHash(crankvm_object_header_t *header, uint32_t value)
 {
     // TODO: Check the endianness.
     header->words[1] = (header->words[1] & (~CRANK_VM_IDENTITY_HASH_MASK)) | (value & CRANK_VM_IDENTITY_HASH_MASK);
 }
 
-static inline crankvm_object_format_t
+CRANK_VM_INLINE crankvm_object_format_t
 crankvm_object_header_getObjectFormat(crankvm_object_header_t *header)
 {
     // TODO: Check the endianness.
     return header->bytes[3] & 31;
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_object_header_setObjectFormat(crankvm_object_header_t *header, crankvm_object_format_t value)
 {
     // TODO: Check the endianness.
     header->bytes[3] = (header->bytes[3] & (-32)) | (value & 31);
 }
 
-static inline uint32_t
+CRANK_VM_INLINE uint32_t
 crankvm_object_header_getClassIndex(crankvm_object_header_t *header)
 {
     // TODO: Check the endianness.
     return header->words[0] & CRANK_VM_CLASS_INDEX_MASK;
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_object_header_setClassIndex(crankvm_object_header_t *header, uint32_t value)
 {
     // TODO: Check the endianness.
     header->words[0] = (header->words[0] & (~CRANK_VM_CLASS_INDEX_MASK)) | (value & CRANK_VM_CLASS_INDEX_MASK);
 }
 
-static inline crankvm_oop_t
+CRANK_VM_INLINE crankvm_oop_t
 crankvm_object_header_getSlot(crankvm_object_header_t *header, size_t index)
 {
     if(index >= crankvm_object_header_getSlotCount(header))
@@ -472,7 +472,7 @@ crankvm_object_header_getSlot(crankvm_object_header_t *header, size_t index)
     return slots[index];
 }
 
-static inline crankvm_object_format_t
+CRANK_VM_INLINE crankvm_object_format_t
 crankvm_oop_getFormat(crankvm_oop_t object)
 {
     if(!crankvm_oop_isPointer(object))
@@ -480,7 +480,7 @@ crankvm_oop_getFormat(crankvm_oop_t object)
     return crankvm_object_header_getObjectFormat((crankvm_object_header_t*)object);
 }
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_oop_isCompiledCode(crankvm_oop_t object)
 {
     crankvm_object_format_t format = crankvm_oop_getFormat(object);
@@ -488,7 +488,7 @@ crankvm_oop_isCompiledCode(crankvm_oop_t object)
 }
 
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_oop_isBytes(crankvm_oop_t object)
 {
     crankvm_object_format_t format = crankvm_oop_getFormat(object);
@@ -509,7 +509,7 @@ typedef struct crankvm_compiled_code_header_s
     unsigned int flag; // At: 29 - 1 bit. Ignored by the VM
 } crankvm_compiled_code_header_t;
 
-static inline crankvm_error_t crankvm_object_decodeCompiledCodeHeader(crankvm_compiled_code_header_t *result, crankvm_oop_t oop)
+CRANK_VM_INLINE crankvm_error_t crankvm_object_decodeCompiledCodeHeader(crankvm_compiled_code_header_t *result, crankvm_oop_t oop)
 {
     if(!crankvm_oop_isSmallInteger(oop))
         return CRANK_VM_ERROR_INVALID_PARAMETER;

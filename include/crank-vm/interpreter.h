@@ -72,45 +72,45 @@ typedef struct crankvm_plugin_s
     const crankvm_plugin_primitive_t primitives[];
 } crankvm_plugin_t;
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_primitive_success(crankvm_primitive_context_t *primitiveContext)
 {
     primitiveContext->error = CRANK_VM_PRIMITIVE_SUCCESS;
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_primitive_successWithResult(crankvm_primitive_context_t *primitiveContext, crankvm_oop_t result)
 {
     primitiveContext->error = CRANK_VM_PRIMITIVE_SUCCESS;
     primitiveContext->roots.result = result;
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_primitive_failWithCode(crankvm_primitive_context_t *primitiveContext, crankvm_primitive_error_code_t code)
 {
     if(primitiveContext->error == CRANK_VM_PRIMITIVE_SUCCESS)
         primitiveContext->error = code;
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_primitive_failWithVMErrorCode(crankvm_primitive_context_t *primitiveContext, crankvm_primitive_error_code_t code)
 {
     crankvm_primitive_failWithCode(primitiveContext, CRANK_VM_PRIMITIVE_ERROR);
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_primitive_fail(crankvm_primitive_context_t *primitiveContext)
 {
     crankvm_primitive_failWithCode(primitiveContext, CRANK_VM_PRIMITIVE_ERROR);
 }
 
-static inline uint32_t
+CRANK_VM_INLINE uint32_t
 crankvm_primitive_getArgumentCount(crankvm_primitive_context_t *primitiveContext)
 {
     return primitiveContext->argumentCount;
 }
 
-static inline crankvm_oop_t
+CRANK_VM_INLINE crankvm_oop_t
 crankvm_primitive_getArgument(crankvm_primitive_context_t *primitiveContext, size_t index)
 {
     if(index >= primitiveContext->argumentCount)
@@ -121,13 +121,13 @@ crankvm_primitive_getArgument(crankvm_primitive_context_t *primitiveContext, siz
     return primitiveContext->roots.arguments[index];
 }
 
-static inline crankvm_oop_t
+CRANK_VM_INLINE crankvm_oop_t
 crankvm_primitive_getReceiver(crankvm_primitive_context_t *primitiveContext)
 {
     return primitiveContext->roots.receiver;
 }
 
-static inline crankvm_oop_t
+CRANK_VM_INLINE crankvm_oop_t
 crankvm_primitive_getStackAt(crankvm_primitive_context_t *primitiveContext, size_t index)
 {
     if(index > primitiveContext->argumentCount)
@@ -143,13 +143,13 @@ crankvm_primitive_getStackAt(crankvm_primitive_context_t *primitiveContext, size
     return primitiveContext->roots.arguments[primitiveContext->argumentCount - index - 1];
 }
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_primitive_hasFailed(crankvm_primitive_context_t *primitiveContext)
 {
     return primitiveContext->error != 0;
 }
 
-static inline intptr_t
+CRANK_VM_INLINE intptr_t
 crankvm_primitive_getSmallIntegerValue(crankvm_primitive_context_t *primitiveContext, crankvm_oop_t oop)
 {
     if(crankvm_primitive_hasFailed(primitiveContext))
@@ -163,7 +163,7 @@ crankvm_primitive_getSmallIntegerValue(crankvm_primitive_context_t *primitiveCon
     return crankvm_oop_decodeSmallInteger(oop);
 }
 
-static inline double
+CRANK_VM_INLINE double
 crankvm_primitive_getNumberAsFloatValue(crankvm_primitive_context_t *primitiveContext, crankvm_oop_t oop)
 {
     if(crankvm_primitive_hasFailed(primitiveContext))
@@ -189,7 +189,7 @@ crankvm_primitive_getNumberAsFloatValue(crankvm_primitive_context_t *primitiveCo
     }
 }
 
-static inline intptr_t
+CRANK_VM_INLINE intptr_t
 crankvm_primitive_getCharacterValue(crankvm_primitive_context_t *primitiveContext, crankvm_oop_t oop)
 {
     if(crankvm_primitive_hasFailed(primitiveContext))
@@ -204,7 +204,7 @@ crankvm_primitive_getCharacterValue(crankvm_primitive_context_t *primitiveContex
     return crankvm_oop_decodeCharacter(oop);
 }
 
-static inline size_t
+CRANK_VM_INLINE size_t
 crankvm_primitive_getSizeValue(crankvm_primitive_context_t *primitiveContext, crankvm_oop_t oop)
 {
     intptr_t value = crankvm_primitive_getSmallIntegerValue(primitiveContext, oop);
@@ -217,7 +217,7 @@ crankvm_primitive_getSizeValue(crankvm_primitive_context_t *primitiveContext, cr
     return value;
 }
 
-static inline uint8_t *
+CRANK_VM_INLINE uint8_t *
 crankvm_primitive_getBytesPointer(crankvm_primitive_context_t *primitiveContext, crankvm_oop_t oop)
 {
     if(!crankvm_oop_isPointer(oop))
@@ -230,7 +230,7 @@ crankvm_primitive_getBytesPointer(crankvm_primitive_context_t *primitiveContext,
     return (uint8_t *)(oop + sizeof(crankvm_object_header_t));
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_primitive_returnSmallInteger(crankvm_primitive_context_t *primitiveContext, intptr_t integer)
 {
     if(!crankvm_oop_isIntegerInSmallIntegerRange(integer))
@@ -238,93 +238,93 @@ crankvm_primitive_returnSmallInteger(crankvm_primitive_context_t *primitiveConte
     return crankvm_primitive_successWithResult(primitiveContext, crankvm_oop_encodeSmallInteger(integer));
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_primitive_returnInteger(crankvm_primitive_context_t *primitiveContext, intptr_t integer)
 {
     return crankvm_primitive_successWithResult(primitiveContext, crankvm_object_forInteger(primitiveContext->context, integer));
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_primitive_returnInteger32(crankvm_primitive_context_t *primitiveContext, int32_t integer)
 {
     return crankvm_primitive_successWithResult(primitiveContext, crankvm_object_forInteger32(primitiveContext->context, integer));
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_primitive_returnUInteger32(crankvm_primitive_context_t *primitiveContext, uint32_t integer)
 {
     return crankvm_primitive_successWithResult(primitiveContext, crankvm_object_forUInteger32(primitiveContext->context, integer));
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_primitive_returnInteger64(crankvm_primitive_context_t *primitiveContext, int64_t integer)
 {
     return crankvm_primitive_successWithResult(primitiveContext, crankvm_object_forInteger64(primitiveContext->context, integer));
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_primitive_returnUInteger64(crankvm_primitive_context_t *primitiveContext, uint64_t integer)
 {
     return crankvm_primitive_successWithResult(primitiveContext, crankvm_object_forUInteger64(primitiveContext->context, integer));
 }
 
 #ifdef CRANK_VM_64_BITS
-static inline void
+CRANK_VM_INLINE void
 crankvm_primitive_returnInteger128(crankvm_primitive_context_t *primitiveContext, int64_t integer)
 {
     return crankvm_primitive_successWithResult(primitiveContext, crankvm_object_forInteger128(primitiveContext->context, integer));
 }
 #endif
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_primitive_returnBoolean(crankvm_primitive_context_t *primitiveContext, int boolean)
 {
     return crankvm_primitive_successWithResult(primitiveContext, crankvm_object_forBoolean(primitiveContext->context, boolean));
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_primitive_returnCharacter(crankvm_primitive_context_t *primitiveContext, uint32_t character)
 {
     return crankvm_primitive_successWithResult(primitiveContext, crankvm_oop_encodeCharacter(character));
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_primitive_returnFloat(crankvm_primitive_context_t *primitiveContext, double floatValue)
 {
     return crankvm_primitive_successWithResult(primitiveContext, crankvm_object_forFloat(primitiveContext->context, floatValue));
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_primitive_returnOop(crankvm_primitive_context_t *primitiveContext, crankvm_oop_t result)
 {
     return crankvm_primitive_successWithResult(primitiveContext, result);
 }
 
-static inline crankvm_context_t*
+CRANK_VM_INLINE crankvm_context_t*
 crankvm_primitive_getContext(crankvm_primitive_context_t *primitiveContext)
 {
     return primitiveContext->context;
 }
 
-static inline crankvm_MethodContext_t*
+CRANK_VM_INLINE crankvm_MethodContext_t*
 crankvm_primitive_getPrimitiveMethodContext(crankvm_primitive_context_t *primitiveContext)
 {
     return primitiveContext->roots.primitiveMethodContext;
 }
 
-static inline crankvm_MethodContext_t*
+CRANK_VM_INLINE crankvm_MethodContext_t*
 crankvm_primitive_getPrimitiveSenderMethodContext(crankvm_primitive_context_t *primitiveContext)
 {
     return (crankvm_MethodContext_t*)crankvm_primitive_getPrimitiveMethodContext(primitiveContext)->baseClass.sender;
 }
 
-static inline void
+CRANK_VM_INLINE void
 crankvm_primitive_finishReplacingMethodContext(crankvm_primitive_context_t *primitiveContext, crankvm_MethodContext_t *newMethodContext)
 {
     primitiveContext->roots.primitiveMethodContext = newMethodContext;
 }
 
-static inline crankvm_oop_t
+CRANK_VM_INLINE crankvm_oop_t
 crankvm_primitive_getLiteral(crankvm_primitive_context_t *primitiveContext, size_t literalIndex)
 {
     if(crankvm_interpreter_checkLiteralIndex(primitiveContext->interpreter, literalIndex))
@@ -335,7 +335,7 @@ crankvm_primitive_getLiteral(crankvm_primitive_context_t *primitiveContext, size
     return crankvm_interpreter_getLiteral(primitiveContext->interpreter, literalIndex);
 }
 
-static inline char *
+CRANK_VM_INLINE char *
 crankvm_primitive_stringToCString(crankvm_primitive_context_t *primitiveContext, crankvm_oop_t oop)
 {
     if(!crankvm_oop_isPointer(oop))

@@ -539,37 +539,37 @@ typedef struct crankvm_context_s crankvm_context_t;
 
 LIB_CRANK_VM_EXPORT crankvm_special_object_array_t *crankvm_context_getSpecialObjectsArray(crankvm_context_t *context);
 
-static inline crankvm_oop_t
+CRANK_VM_INLINE crankvm_oop_t
 crankvm_specialObject_nil(crankvm_context_t *context)
 {
     return crankvm_context_getSpecialObjectsArray(context)->nilObject;
 }
 
-static inline crankvm_oop_t
+CRANK_VM_INLINE crankvm_oop_t
 crankvm_specialObject_true(crankvm_context_t *context)
 {
     return crankvm_context_getSpecialObjectsArray(context)->trueObject;
 }
 
-static inline crankvm_oop_t
+CRANK_VM_INLINE crankvm_oop_t
 crankvm_specialObject_false(crankvm_context_t *context)
 {
     return crankvm_context_getSpecialObjectsArray(context)->falseObject;
 }
 
-static inline crankvm_error_t
+CRANK_VM_INLINE crankvm_error_t
 crankvm_specialObject_getCompiledCodeHeader(crankvm_compiled_code_header_t *result, crankvm_CompiledCode_t *compiledCode)
 {
     return crankvm_object_decodeCompiledCodeHeader(result, compiledCode->codeHeader);
 }
 
-static inline crankvm_object_format_t
+CRANK_VM_INLINE crankvm_object_format_t
 crankvm_Behavior_getInstanceSpec(crankvm_Behavior_t *behavior)
 {
     return (crankvm_oop_decodeSmallInteger(behavior->format) >> 16) & 0x1F;
 }
 
-static inline crankvm_oop_t
+CRANK_VM_INLINE crankvm_oop_t
 crankvm_Behavior_getInstanceSize(crankvm_Behavior_t *behavior)
 {
     return crankvm_oop_decodeSmallInteger(behavior->format) & 0xFFFF;

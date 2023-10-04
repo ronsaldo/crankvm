@@ -7,7 +7,7 @@
 
 #include <sys/mman.h>
 
-static inline size_t
+CRANK_VM_INLINE size_t
 crankvm_heap_roundUpHeapSize(size_t size)
 {
     return ((size + 4095) & (-4096));

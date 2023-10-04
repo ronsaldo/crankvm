@@ -45,7 +45,7 @@ crankvm_object_isNil(crankvm_context_t *context, void *pointer)
     return !context || !context->roots.specialObjectsArray || ((crankvm_oop_t)pointer == context->roots.specialObjectsArray->nilObject);
 }
 
-static inline uintptr_t
+CRANK_VM_INLINE uintptr_t
 crankvm_context_newIdentityHash(crankvm_context_t *context)
 {
     return context->lastIdentityHash = (context->lastIdentityHash*1103515245 + 12345) % 0x7fffffff;

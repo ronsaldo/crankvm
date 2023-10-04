@@ -66,52 +66,52 @@
         "opcode" : 95
     },
 
-    "specialMessageAdd" : {
+    "arithmeticMessageAdd" : {
         "opcode" : 96
     },
-    "specialMessageMinus" : {
+    "arithmeticMessageMinus" : {
         "opcode" : 97
     },
-    "specialMessageLessThan" : {
+    "arithmeticMessageLessThan" : {
         "opcode" : 98
     },
-    "specialMessageGreaterThan" : {
+    "arithmeticMessageGreaterThan" : {
         "opcode" : 99
     },
-    "specialMessageLessEqual" : {
+    "arithmeticMessageLessEqual" : {
         "opcode" : 100
     },
-    "specialMessageGreaterEqual" : {
+    "arithmeticMessageGreaterEqual" : {
         "opcode" : 101
     },
-    "specialMessageEqual" : {
+    "arithmeticMessageEqual" : {
         "opcode" : 102
     },
-    "specialMessageNotEqual" : {
+    "arithmeticMessageNotEqual" : {
         "opcode" : 103
     },
-    "specialMessageMultiply" : {
+    "arithmeticMessageMultiply" : {
         "opcode" : 104
     },
-    "specialMessageDivide" : {
+    "arithmeticMessageDivide" : {
         "opcode" : 105
     },
-    "specialMessageRemainder" : {
+    "arithmeticMessageRemainder" : {
         "opcode" : 106
     },
     "specialMessageMakePoint" : {
         "opcode" : 107
     },
-    "specialMessageBitShift" : {
+    "arithmeticMessageBitShift" : {
         "opcode" : 108
     },
-    "specialMessageIntegerDivision" : {
+    "arithmeticMessageIntegerDivision" : {
         "opcode" : 109
     },
-    "specialMessageBitAnd" : {
+    "arithmeticMessageBitAnd" : {
         "opcode" : 110
     },
-    "specialMessageBitOr" : {
+    "arithmeticMessageBitOr" : {
         "opcode" : 111
     },
 

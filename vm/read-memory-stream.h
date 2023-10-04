@@ -12,7 +12,7 @@ typedef struct crankvm_read_memory_stream_s
     size_t size;
 } crankvm_read_memory_stream_t;
 
-static inline crankvm_read_memory_stream_t
+CRANK_VM_INLINE crankvm_read_memory_stream_t
 crankvm_read_memory_stream_create(const void *data, size_t position, size_t size)
 {
     crankvm_read_memory_stream_t result;
@@ -22,13 +22,13 @@ crankvm_read_memory_stream_create(const void *data, size_t position, size_t size
     return result;
 }
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_read_memory_stream_hasNextSize(crankvm_read_memory_stream_t *stream, size_t size)
 {
     return stream->size - stream->position >= size;
 }
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_read_memory_stream_nextU32(crankvm_read_memory_stream_t *stream, uint32_t *result)
 {
     if(!crankvm_read_memory_stream_hasNextSize(stream, 4))
@@ -39,7 +39,7 @@ crankvm_read_memory_stream_nextU32(crankvm_read_memory_stream_t *stream, uint32_
     return 1;
 }
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_read_memory_stream_nextU16(crankvm_read_memory_stream_t *stream, uint16_t *result)
 {
     if(!crankvm_read_memory_stream_hasNextSize(stream, 2))
@@ -50,7 +50,7 @@ crankvm_read_memory_stream_nextU16(crankvm_read_memory_stream_t *stream, uint16_
     return 1;
 }
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_read_memory_stream_nextWord(crankvm_read_memory_stream_t *stream, uintptr_t *result)
 {
     if(!crankvm_read_memory_stream_hasNextSize(stream, 4))
@@ -62,7 +62,7 @@ crankvm_read_memory_stream_nextWord(crankvm_read_memory_stream_t *stream, uintpt
 }
 
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_read_memory_stream_nextU32BigEndian(crankvm_read_memory_stream_t *stream, uint32_t *result)
 {
     if(!crankvm_read_memory_stream_hasNextSize(stream, 4))
@@ -76,7 +76,7 @@ crankvm_read_memory_stream_nextU32BigEndian(crankvm_read_memory_stream_t *stream
     return 1;
 }
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_read_memory_stream_nextI32(crankvm_read_memory_stream_t *stream, int32_t *result)
 {
     if(!crankvm_read_memory_stream_hasNextSize(stream, 4))
@@ -87,7 +87,7 @@ crankvm_read_memory_stream_nextI32(crankvm_read_memory_stream_t *stream, int32_t
     return 1;
 }
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_read_memory_stream_nextBytesInto(crankvm_read_memory_stream_t *stream, size_t size, uint8_t *result)
 {
     if(!crankvm_read_memory_stream_hasNextSize(stream, size))

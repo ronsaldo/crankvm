@@ -66,19 +66,19 @@ LIB_CRANK_VM_EXPORT void* crankvm_context_malloc(crankvm_context_t *context, siz
 LIB_CRANK_VM_EXPORT void crankvm_context_free(crankvm_context_t *context, void *pointer);
 
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_object_isNilOrNull(crankvm_context_t *context, void *pointer)
 {
     return !pointer || crankvm_object_isNil(context, pointer);
 }
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_oop_isNil(crankvm_context_t *context, crankvm_oop_t oop)
 {
     return crankvm_object_isNil(context, (void*)oop);
 }
 
-static inline int
+CRANK_VM_INLINE int
 crankvm_oop_isNilOrNull(crankvm_context_t *context, crankvm_oop_t oop)
 {
     return crankvm_object_isNilOrNull(context, (void*)oop);
