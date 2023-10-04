@@ -176,15 +176,15 @@
         "range-last" : 175
     },
 
-    "jumpShort" : {
+    "shortJump" : {
         "range-first" : 176,
         "range-last" : 183
     },
-    "jumpOnTrueShort" : {
+    "shortJumpIfTrue" : {
         "range-first" : 184,
         "range-last" : 191
     },
-    "jumpOnFalseShort" : {
+    "shortJumpIfFalse" : {
         "range-first" : 192,
         "range-last" : 199
     },
@@ -246,10 +246,10 @@
     "jump" : {
         "opcode" : 237
     },
-    "jumpOnTrue" : {
+    "jumpIfTrue" : {
         "opcode" : 238
     },
-    "jumpOnFalse" : {
+    "jumpIfFalse" : {
         "opcode" : 239
     },
 

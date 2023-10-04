@@ -6,11 +6,11 @@ static const char *bytecodeNameTable[] = {
 #define BYTECODE(opcode, name) #name,
 #define UNDEFINED_BYTECODE(opcode) "UndefinedByteCode",
 
-// SistaV1 set
-#include "SistaV1BytecodeSetTable.inc"
-
 // SqueakV3Plus closures bytecode set
 #include "SqueakV3PlusClosuresBytecodeSetTable.inc"
+
+// SistaV1 set
+#include "SistaV1BytecodeSetTable.inc"
 
 #undef BYTECODE_WITH_IMPLICIT_PARAM
 #undef BYTECODE
@@ -751,6 +751,18 @@ crankvm_interpreter_jumpIfTrue(crankvm_interpreter_state_t *self, intptr_t delta
 // <editor-fold> Implementation of the bytecodes
 
 static crankvm_error_t
+crankvm_interpreter_bytecodeExtendA(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodeExtendB(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
 crankvm_interpreter_bytecodePushReceiverVariableShort(crankvm_interpreter_state_t *self, int index)
 {
     fetchNextInstruction();
@@ -1252,6 +1264,12 @@ crankvm_interpreter_bytecodeShortJumpIfFalse(crankvm_interpreter_state_t *self, 
 }
 
 static crankvm_error_t
+crankvm_interpreter_bytecodeShortJumpIfTrue(crankvm_interpreter_state_t *self, unsigned int extraDelta)
+{
+    return crankvm_interpreter_jumpIfTrue(self, 1 + extraDelta);
+}
+
+static crankvm_error_t
 crankvm_interpreter_bytecodeLongJump(crankvm_interpreter_state_t *self, int i)
 {
     intptr_t delta = ((i - 4) << 8) | crankvm_interpreter_fetchByte(self);
@@ -1270,6 +1288,23 @@ crankvm_interpreter_bytecodeLongJumpIfTrue(crankvm_interpreter_state_t *self, in
 {
     intptr_t delta = (i << 8) | crankvm_interpreter_fetchByte(self);
     return crankvm_interpreter_jumpIfTrue(self, delta);
+}
+static crankvm_error_t
+crankvm_interpreter_bytecodeJump(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodeJumpIfTrue(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodeJumpIfFalse(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
 }
 
 static crankvm_error_t
@@ -1501,6 +1536,132 @@ crankvm_interpreter_bytecodeSendShortArgs2(crankvm_interpreter_state_t *self, in
     return crankvm_interpreter_sendTo(self, 2, crankvm_interpreter_getLiteral(self, selectorIndex));
 }
 
+static crankvm_error_t
+crankvm_interpreter_bytecodeSend(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodeSuperSend(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodeTrapOnBehavior(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodePushReceiverVariable(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodePushLiteralVariable(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodePushLiteral(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodePushTemporary(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodePushNTemps(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodePushInteger(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodePushCharacter(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodePushArrayWithElements(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodePopStoreReceiverVariable(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodePopStoreLiteralVariable(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodePopStoreTemporalVariable(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodeStoreReceiverVariable(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodeStoreLiteralVariable(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodeStoreTemporalVariable(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodePushClosure(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodePushTemporaryInVector(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodeStoreTemporalInVector(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
+static crankvm_error_t
+crankvm_interpreter_bytecodePopStoreTemporalInVector(crankvm_interpreter_state_t *self)
+{
+    UNIMPLEMENTED();
+}
+
 // </editor-fold> End of implementation of the bytecodes.
 
 crankvm_error_t
@@ -1521,7 +1682,8 @@ crankvm_interpreter_run(crankvm_interpreter_state_t *self)
         self->currentBytecode = self->nextBytecode;
         self->pc = self->nextPC;
 
-        printf("Bytecode: [%02X,SP:%02d]%s\n", self->currentBytecode, (int)self->stackPointer, bytecodeNameTable[self->currentBytecode + self->currentBytecodeSetOffset]);
+        int bytecodePC = self->pc;
+        printf("Bytecode: [%04d: %02X,SP:%02d]%s\n", (int)bytecodePC, self->currentBytecode, (int)self->stackPointer, bytecodeNameTable[self->currentBytecode + self->currentBytecodeSetOffset]);
 
         switch(self->currentBytecode + self->currentBytecodeSetOffset)
         {
@@ -1536,14 +1698,14 @@ crankvm_interpreter_run(crankvm_interpreter_state_t *self)
         break;
 #define UNDEFINED_BYTECODE(opcode) // Caught by the default case.
 
-// SistaV1 set
+// SqueakV3Plus closures bytecode set
 #define BYTECODE_TABLE_OFFSET 0
-#include "SistaV1BytecodeSetTable.inc"
+#include "SqueakV3PlusClosuresBytecodeSetTable.inc"
 #undef BYTECODE_TABLE_OFFSET
 
-// SqueakV3Plus closures bytecode set
+// SistaV1 set
 #define BYTECODE_TABLE_OFFSET 256
-#include "SqueakV3PlusClosuresBytecodeSetTable.inc"
+#include "SistaV1BytecodeSetTable.inc"
 #undef BYTECODE_TABLE_OFFSET
 
 #undef BYTECODE_WITH_IMPLICIT_PARAM
